@@ -5,6 +5,7 @@
   :description "An evented webserver for Common Lisp."
   :depends-on (#:cl-async 
                #+(or :wookie-no-ssl) #:cl-async-ssl
+               #:cl-ppcre
                #:babel
                #:http-parse)
   :components

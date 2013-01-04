@@ -1,6 +1,8 @@
 (defpackage :wookie
   (:use :cl)
-  (:export #:defroute
+  (:export #:clear-routes
+           #:clear-route
+           #:defroute
            #:acceptor
            #:start-server
            #:send-reply))

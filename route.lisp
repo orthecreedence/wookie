@@ -1,24 +1,84 @@
 (in-package :wookie)
 
-(defvar *routes* nil
+(defvar *routes* (make-array 0 :adjustable t :fill-pointer t) 
   "Holds all the routes for the system.") 
 
-(defun make-route (method resource fn)
-  "Simple wrapper to make a route object from a set of args."
-  (list :method method :resource resource :fn fn))
+(defun clear-routes ()
+  "Clear out all routes."
+  (setf *routes* (make-array 0 :adjustable t :fill-pointer t)))
 
-(defmacro defroute (method resource (bind-http bind-reply) &body body)
-  "Defines a wookie route and pushes it into the route list."
-  `(push (make-route ,method ,resource
-                     (lambda (,bind-http ,bind-reply)
-                       ,@body))
-         *routes*))
+(defun make-route (method resource fn &key regex case-sensitive)
+  "Simple wrapper to make a route object from a set of args."
+  (let ((scanner (if regex
+                     (cl-ppcre:create-scanner
+                       (concatenate 'string "^" resource "$")
+                       :case-insensitive-mode (not case-sensitive))
+                     resource)))
+    (list :method method
+          :resource scanner
+          :fn fn
+          :regex regex
+          :resource-str resource)))
 
 (defun find-route (method resource)
   "Given a method and a resource, find the best matching route."
-  (let ((route (find-if (lambda (route)
-                          (and (eq (getf route :method) method)
-                               (string= (getf route :resource) resource)))
-                        *routes*)))
-    (when route
-      (getf route :fn))))
+  (loop for route across *routes* do
+    (when (eq (getf route :method) method)
+      (multiple-value-bind (matchedp matches)
+          (if (getf route :regex)
+              (cl-ppcre:scan-to-strings (getf route :resource) resource)
+              (string= (getf route :resource) resource))
+        (when matchedp
+          (let* ((fn (getf route :fn))
+                 (curried-fn (lambda (reply)
+                               (apply fn (append (list reply)
+                                                 (coerce matches 'list))))))
+            (return-from find-route curried-fn)))))))
+
+
+(defun upsert-route (new-route)
+  "Add a new route to the table. If a route already exists with the same method
+   and resource string, it is replaced with the new one in the same position the 
+   old route existed in (as to preserve routing order)."
+  (let ((route-found nil)
+        (resource-str (getf new-route :resource-str) )
+        (method (getf new-route :method)))
+    (unless (zerop (length *routes*))
+      (loop for i from 0
+            for route across *routes* do
+        (when (and (eq (getf route :method) method)
+                   (string= (getf route :resource-str) resource-str))
+          (setf (aref *routes* i) route
+                route-found t)
+          (return))))
+    (unless route-found
+      (vector-push-extend new-route *routes*))
+    *routes*))
+
+(defun clear-route (method resource-str)
+  "Clear out a route in the routing table."
+  (setf *routes* (delete-if (lambda (route)
+                              (and (eq (getf route :method) method)
+                                   (string= (getf route :resource-str) resource-str)))
+                            *routes*)))
+
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t))
+                    (bind-reply &optional bind-args)
+                    &body body)
+  "Defines a wookie route and pushes it into the route list."
+  (let* ((new-route (gensym))
+         (ignore-bind-args nil)
+         (bind-args (if bind-args
+                        bind-args
+                        (progn
+                          (setf ignore-bind-args t)
+                          (gensym)))))
+    `(let ((,new-route (make-route ,method ,resource
+                                   (lambda (,bind-reply &rest ,bind-args)
+                                     ,(when ignore-bind-args
+                                        `(declare (ignore ,bind-args)))
+                                     ,@body)
+                                   :regex ,regex
+                                   :case-sensitive ,case-sensitive)))
+       (upsert-route ,new-route))))
+

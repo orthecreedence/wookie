@@ -9,46 +9,8 @@
 
 (defclass reply ()
   ((socket :accessor reply-socket :initarg :socket :initform nil)
+   (request :accessor reply-request :initarg :request :initform nil)
    (headers :accessor reply-headers :initarg :headers :initform nil)))
-
-(defgeneric start-server (acceptor)
-  (:documentation
-    "Start wookie with the given acceptor."))
-
-(defmethod start-server ((acceptor acceptor))
-  ;; start the async server
-  (as:tcp-server (acceptor-bind acceptor) (acceptor-port acceptor)
-    (lambda (sock data)
-      ;; pull the parser out of the socket's data and see if we have a full
-      ;; request
-      (let ((parser (as:socket-data sock)))
-        (multiple-value-bind (http headers-parsed-p body-parsed-p)
-            (funcall parser data)
-          (when (and headers-parsed-p body-parsed-p) 
-            ;; TODO remove this killswitch
-            (when (eq (http-parse:http-method http) :delete)
-              (as:close-socket sock)
-              (as:exit-event-loop))
-            ;; we got a full request, parsed and ready to go, find a matching
-            ;; route
-            (let ((router (find-route (http-parse:http-method http)
-                                      (http-parse:http-resource http)))
-                  (reply (make-instance 'reply :socket sock))) 
-              ;; call matching route or signal error
-              (if router
-                  (funcall router http reply)
-                  (http-error http reply :404)))))))
-    ;; handle socket events
-    (lambda (ev)
-      (format t "ev: ~a~%" ev))
-    ;; when a new client connects, attach an HTTP parser to the connection so
-    ;; when new data comes in on that socket, we can parse it
-    :connect-cb (lambda (sock)
-                  (let* ((http (make-instance 'http-parse:http-request))
-                         (parser (http-parse:make-parser http :store-body t)))
-                    ;; attach parser to socket-data so we can deref it in the
-                    ;; read-cb
-                    (setf (as:socket-data sock) parser)))))
 
 (defun send-reply (reply &key (status 200) headers body)
   "Send a reply to an incoming request. Takes :status, :headers, and :body
@@ -83,4 +45,44 @@
       ;; send body if specified
       (when body
         (as:write-socket-data socket body-enc)))))
+
+(defgeneric start-server (acceptor)
+  (:documentation
+    "Start wookie with the given acceptor."))
+
+(defmethod start-server ((acceptor acceptor))
+  ;; start the async server
+  (as:tcp-server (acceptor-bind acceptor) (acceptor-port acceptor)
+    (lambda (sock data)
+      ;; pull the parser out of the socket's data and see if we have a full
+      ;; request
+      (let ((parser (as:socket-data sock)))
+        (multiple-value-bind (http headers-parsed-p body-parsed-p)
+            (funcall parser data)
+          (when (and headers-parsed-p body-parsed-p) 
+            ;; TODO remove this killswitch
+            (when (eq (http-parse:http-method http) :delete)
+              (as:close-socket sock)
+              (as:exit-event-loop))
+            ;; we got a full request, parsed and ready to go, find a matching
+            ;; route
+            (let ((router (find-route (http-parse:http-method http)
+                                      (http-parse:http-resource http)))
+                  (reply (make-instance 'reply :socket sock :request http))) 
+              ;; call matching route or signal error
+              (if router
+                  (funcall router reply)
+                  ;; TODO replace with error hook
+                  (send-reply reply :status 404 :body "Page not found =[")))))))
+    ;; handle socket events
+    (lambda (ev)
+      (format t "ev: ~a~%" ev))
+    ;; when a new client connects, attach an HTTP parser to the connection so
+    ;; when new data comes in on that socket, we can parse it
+    :connect-cb (lambda (sock)
+                  (let* ((http (make-instance 'http-parse:http-request))
+                         (parser (http-parse:make-parser http :store-body t)))
+                    ;; attach parser to socket-data so we can deref it in the
+                    ;; read-cb
+                    (setf (as:socket-data sock) parser)))))
 

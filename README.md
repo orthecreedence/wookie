@@ -25,8 +25,13 @@ For the brave
   (:use :cl))
 (in-package :wookie-test)
 
-(wookie:defroute :GET "/" (http reply)
+(wookie:clear-routes)
+
+(wookie:defroute (:get "/") (reply)
   (wookie:send-reply reply :body "Hello!"))
+
+(wookie:defroute (:put "/albums/([0-9]+)") (reply args)
+  (wookie:send-reply reply :body (format nil "Album ~a updated!" (car args))))
 
 (as:start-event-loop
   (lambda ()
