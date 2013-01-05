@@ -3,6 +3,7 @@
 (defclass request ()
   ((method :accessor request-method :initarg :method :initform :get)
    (resource :accessor request-resource :initarg :resource :initform "/")
+   (plugin-data :accessor request-plugin-data :initarg :plugin-data :initform nil)
    (http :accessor request-http :initarg :http :initform nil))
   (:documentation "A class describing a request, passed to every route.")) 
 

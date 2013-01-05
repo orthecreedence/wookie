@@ -7,12 +7,10 @@
            #:clear-hooks
            #:add-hook
 
-           #:set-plugin-folder
-           #:load-plugins
-
            #:request
            #:request-method
            #:request-resource
+           #:request-plugin-data
            #:request-http
            #:response
            #:response-headers
