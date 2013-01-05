@@ -23,8 +23,8 @@
           (when (and headers-parsed-p body-parsed-p) 
             ;; we got a full request, parsed and ready to go, find a matching
             ;; route
-            (let ((router (find-route (http-parse:http-method http)
-                                      (http-parse:http-resource http)))
+            (let ((route-fn (find-route (http-parse:http-method http)
+                                        (http-parse:http-resource http)))
                   (request (make-instance 'request
                                           :method (http-parse:http-method http)
                                           :resource (http-parse:http-resource http)
@@ -33,8 +33,8 @@
               ;; run our pre-route hooks
               (run-hooks :pre-route request response)
               ;; call matching route or signal error
-              (if router
-                  (funcall router request response)
+              (if route-fn
+                  (funcall route-fn request response)
                   ;; TODO replace with error hook
                   (send-response response :status 404 :body "Page not found =["))
               ;; run post-route hooks
