@@ -17,6 +17,8 @@
            #:response
            #:response-headers
            #:send-response
+           #:start-response
+           #:finish-response
 
            #:acceptor
            #:start-server))

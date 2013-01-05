@@ -7,6 +7,7 @@
                #+(or :wookie-no-ssl) #:cl-async-ssl
                #:cl-ppcre
                #:babel
+               #:chunga
                #:http-parse)
   :components
   ((:file "package")
