@@ -7,6 +7,28 @@
    (ssl-cert :accessor acceptor-ssl-cert :initarg :ssl-cert :initform nil)
    (ssl-key :accessor acceptor-ssl-key :initarg :ssl-key :initform nil)))
 
+(defun handle-connection (sock)
+  ;; TODO pass client address info into :connect hook
+  (run-hooks :connect)
+  (let ((http (make-instance 'http-parse:http-request))
+        (route nil))
+    (flet ((have-headers (headers)
+             (let ((found-route (find-route (http-parse:http-method http)
+                                            (http-parse:http-resource http))))
+               (setf route found-route)
+               (when (and found-route
+                          (getf found-route :allow-chunking))
+                 (dispatch-route route))))
+           (body-cb (chunk)
+             ;; TODO somehow get this chunk to function in the route
+             ))
+      (let ((parser (http-parse:make-parser
+                      http
+                      :store-body t)))
+        ;; attach parser to socket-data so we can deref it in the
+        ;; read-cb
+        (setf (as:socket-data sock) parser)))))
+
 (defgeneric start-server (acceptor)
   (:documentation
     "Start wookie with the given acceptor."))
@@ -44,12 +66,5 @@
       (format t "ev: ~a~%" ev))
     ;; when a new client connects, attach an HTTP parser to the connection so
     ;; when new data comes in on that socket, we can parse it
-    :connect-cb (lambda (sock)
-                  ;; TODO pass client address info into :connect hook
-                  (run-hooks :connect)
-                  (let* ((http (make-instance 'http-parse:http-request))
-                         (parser (http-parse:make-parser http :store-body t)))
-                    ;; attach parser to socket-data so we can deref it in the
-                    ;; read-cb
-                    (setf (as:socket-data sock) parser)))))
+    :connect-cb #'handle-connection))
 

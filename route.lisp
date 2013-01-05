@@ -7,7 +7,7 @@
   "Clear out all routes."
   (setf *routes* (make-array 0 :adjustable t :fill-pointer t)))
 
-(defun make-route (method resource fn &key regex case-sensitive)
+(defun make-route (method resource fn &key regex case-sensitive allow-chunking)
   "Simple wrapper to make a route object from a set of args."
   (let ((scanner (if regex
                      (cl-ppcre:create-scanner
@@ -18,6 +18,7 @@
           :resource scanner
           :fn fn
           :regex regex
+          :allow-chunking allow-chunking
           :resource-str resource)))
 
 (defun find-route (method resource)
@@ -33,8 +34,8 @@
                  (curried-fn (lambda (request response)
                                (apply fn (append (list request response)
                                                  (coerce matches 'list))))))
-            (return-from find-route curried-fn)))))))
-
+            (setf (getf route :fn) curried-fn)
+            (return-from find-route route)))))))
 
 (defun upsert-route (new-route)
   "Add a new route to the table. If a route already exists with the same method
@@ -62,7 +63,7 @@
                                    (string= (getf route :resource-str) resource-str)))
                             *routes*)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t))
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk)
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list."
