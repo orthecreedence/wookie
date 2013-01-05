@@ -14,4 +14,5 @@
    (:file "route" :depends-on ("util"))
    (:file "plugin" :depends-on ("util"))
    (:file "hook" :depends-on ("util"))
-   (:file "acceptor" :depends-on ("route" "hook" "plugin"))))
+   (:file "request-response" :depends-on ("util"))
+   (:file "acceptor" :depends-on ("request-response" "route" "hook" "plugin"))))

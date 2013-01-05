@@ -27,11 +27,11 @@ For the brave
 
 (wookie:clear-routes)
 
-(wookie:defroute (:get "/") (reply)
-  (wookie:send-reply reply :body "Hello!"))
+(wookie:defroute (:get "/") (req res)
+  (wookie:send-response res :body "Hello!"))
 
-(wookie:defroute (:put "/albums/([0-9]+)") (reply args)
-  (wookie:send-reply reply :body (format nil "Album ~a updated!" (car args))))
+(wookie:defroute (:put "/albums/([0-9]+)") (req res args)
+  (wookie:send-response res :body (format nil "Album ~a updated!" (car args))))
 
 (as:start-event-loop
   (lambda ()
