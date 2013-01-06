@@ -11,7 +11,8 @@
                #:http-parse)
   :components
   ((:file "package")
-   (:file "util" :depends-on ("package"))
+   (:file "config" :depends-on ("package"))
+   (:file "util" :depends-on ("config"))
    (:file "route" :depends-on ("util"))
    (:file "plugin" :depends-on ("util"))
    (:file "hook" :depends-on ("util"))

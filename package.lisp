@@ -1,6 +1,8 @@
 (defpackage :wookie
   (:use :cl)
-  (:export #:clear-routes
+  (:export #:*hide-version*
+           
+           #:clear-routes
            #:clear-route
            #:defroute
 
