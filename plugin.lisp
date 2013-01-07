@@ -25,7 +25,8 @@
    about the plugin (name, author, description, etc), and init-fn is the
    initialization function called that loads the plugin (called only once, on
    register)."
-  (when (find plugin-name *enabled-plugins*)
+  (when (and (find plugin-name *enabled-plugins*)    ; make sure it's enabled
+             (not (gethash plugin-name *plugins*)))  ; make sure it's not loaded already
     (setf (gethash plugin-name *plugins*)
           (list :name plugin-name :meta meta :unload-function unload-function))
     (funcall init-function)))
