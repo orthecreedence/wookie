@@ -8,6 +8,7 @@
 
            #:clear-hooks
            #:add-hook
+           #:remove-hook
 
            #:request
            #:request-method

@@ -27,14 +27,16 @@
    register)."
   (when (find plugin-name *enabled-plugins*)
     (setf (gethash plugin-name *plugins*)
-          (list :name plugin-name :meta meta :unload-fn unload-function))
+          (list :name plugin-name :meta meta :unload-function unload-function))
     (funcall init-function)))
 
 (defun unload-plugin (plugin-name)
   "Unload a plugin from the wookie system. If it's currently registered, its
    unload-function will be called."
-
-
+  (let ((plugin (gethash plugin-name *plugins*)))
+    (when plugin
+      (funcall (getf plugin :unload-function (lambda ())))
+      (remhash plugin-name *plugins*))))
 
 (defun plugin-config (plugin-name)
   "Return the configuration for a plugin. Setfable."
@@ -67,17 +69,22 @@
 (defun load-plugins (&key compile)
   "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
    There is also the option to compile the plugins (default nil)."
-  (setf *plugins* (make-hash-table :test #'eq))
-  (let ((scan (concatenate 'string (namestring *plugin-folder*) "*")))
-    (dolist (dir (directory scan))
-      (let* ((dirstr (namestring dir))
-             (last-char (aref dirstr (1- (length dirstr)))))
-        (when (or (eq last-char #\/)
-                  (eq last-char #\\))
-          (let ((plugin-file (concatenate 'string dirstr
-                                          "plugin.lisp")))
-            (when (probe-file plugin-file)
-              (when compile
-                (setf plugin-file (compile-file plugin-file)))
-              (load plugin-file))))))))
+  (unless *plugins*
+    (setf *plugins* (make-hash-table :test #'eq)))
+  ;; unload current plugins
+  (loop for name being the hash-keys of *plugins* do
+    (unload-plugin name))
+  (dolist (plugin-folder *plugin-folders*)
+    (let ((scan (concatenate 'string (namestring plugin-folder) "*")))
+      (dolist (dir (directory scan))
+        (let* ((dirstr (namestring dir))
+               (last-char (aref dirstr (1- (length dirstr)))))
+          (when (or (eq last-char #\/)
+                    (eq last-char #\\))
+            (let ((plugin-file (concatenate 'string dirstr
+                                            "plugin.lisp")))
+              (when (probe-file plugin-file)
+                (when compile
+                  (setf plugin-file (compile-file plugin-file)))
+                (load plugin-file)))))))))
 
