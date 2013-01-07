@@ -73,6 +73,10 @@
     (when (hash-table-p data)
       (gethash plugin-name data))))
 
+(defparameter *scanner-plugin-name*
+  (cl-ppcre:create-scanner "[/\\\\]([a-z-_]+)[/\\\\]?$" :case-insensitive-mode t)
+  "Basically unix's basename in a regex.")
+
 (defun load-plugins (&key compile)
   "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
    There is also the option to compile the plugins (default nil)."
@@ -85,9 +89,12 @@
     (let ((scan (concatenate 'string (namestring plugin-folder) "*")))
       (dolist (dir (directory scan))
         (let* ((dirstr (namestring dir))
-               (last-char (aref dirstr (1- (length dirstr)))))
-          (when (or (eq last-char #\/)
-                    (eq last-char #\\))
+               (last-char (aref dirstr (1- (length dirstr))))
+               (plugin-name (aref (cadr (multiple-value-list (cl-ppcre:scan-to-strings *scanner-plugin-name* dirstr))) 0))
+               (plugin-name (intern (string-upcase plugin-name) :keyword)))
+          (when (and (or (eq last-char #\/)
+                         (eq last-char #\\))
+                     (find plugin-name *enabled-plugins*))
             (let ((plugin-file (concatenate 'string dirstr
                                             "plugin.lisp")))
               (when (probe-file plugin-file)
