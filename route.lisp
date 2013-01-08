@@ -81,6 +81,7 @@
                                         `(declare (ignore ,bind-args)))
                                      ,@body)
                                    :regex ,regex
-                                   :case-sensitive ,case-sensitive)))
+                                   :case-sensitive ,case-sensitive
+                                   :allow-chunking ,chunk)))
        (upsert-route ,new-route))))
 

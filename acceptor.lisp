@@ -18,7 +18,7 @@
     (labels ((dispatch-route ()
                (when route-dispatched
                  (return-from dispatch-route))
-               (format t "dispatch route: ~s~%" route)
+               (format t "dispatch route: ~a~%~%" sock)
                (setf route-dispatched t)
                (run-hooks :pre-route request response)
                (if route
@@ -38,14 +38,12 @@
                             (getf found-route :allow-chunking))
                    (dispatch-route))))
              (body-callback (chunk finishedp)
-               (format t "body cb: ~a~%" (length chunk))
+               (format t "body cb: ~a, ~a~%" (length chunk) finishedp)
                (let ((request-body-cb (request-body-callback request)))
                  (when request-body-cb
-                   (funcall request-body-cb chunk)))
-               (when finishedp
-                 (dispatch-route)))
+                   (funcall request-body-cb chunk finishedp))))
              (finish-callback ()
-               (format t "finishcb~%")
+               ;(format t "finishcb~%")
                (dispatch-route)))
       (let ((parser (http-parse:make-parser
                       http
@@ -67,6 +65,7 @@
   (as:tcp-server (acceptor-bind acceptor) (acceptor-port acceptor)
     (lambda (sock data)
       ;; grab the parser stored in the socket and pipe the data into it
+      ;(format t "readcb: ~a~%" (babel:octets-to-string data))
       (let ((parser (as:socket-data sock)))
         (funcall parser data)))
     ;; handle socket events

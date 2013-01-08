@@ -13,6 +13,17 @@
    (headers :accessor response-headers :initarg :headers :initform nil))
   (:documentation "A class holding information about a response to the client."))
 
+(defmacro with-chunking (request (chunk-data last-chunk-p) &body body)
+  "Set up a listener for chunked data in a chunk-enabled router. This macro
+   takes a request object, the names of the chunk-data/finishedp arguments
+   for the body, and the body form.
+
+   Chunk-data is a byte-array of data received as decoded chunked data comes in
+   from the client, and last-chunk-p is a boolean indicating whether the last
+   chunk from the request is being sent in."
+  `(setf (request-body-callback ,request) (lambda (,chunk-data ,last-chunk-p)
+                                            ,@body)))
+
 (defun send-response (response &key (status 200) headers body close)
   "Send a response to an incoming request. Takes :status, :headers, and :body
    keyword arguments, which together form an entire response.

@@ -18,6 +18,7 @@
            #:request-http
            #:response
            #:response-headers
+           #:with-chunking
            #:send-response
            #:start-response
            #:finish-response
