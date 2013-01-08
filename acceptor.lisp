@@ -34,6 +34,11 @@
                  (setf route found-route
                        (request-method request) method
                        (request-resource request) resource)
+                 (when (string= (getf headers :expect) "100-continue")
+                   (if found-route
+                       (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
+                                                          #\return #\newline #\return #\newline))
+                       (route-not-found response)))
                  (when (and found-route
                             (getf found-route :allow-chunking))
                    (dispatch-route))))
