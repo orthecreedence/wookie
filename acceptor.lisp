@@ -22,7 +22,7 @@
                (setf route-dispatched t)
                (run-hooks :pre-route request response)
                (if route
-                   (let ((route-fn (getf route :fn)))
+                   (let ((route-fn (getf route :curried-route)))
                      (funcall route-fn request response))
                    (send-response response :status 404 :body "Page not found =["))
                (run-hooks :post-route request response))
