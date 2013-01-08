@@ -10,20 +10,49 @@
 (defun handle-connection (sock)
   ;; TODO pass client address info into :connect hook
   (run-hooks :connect)
-  (let ((http (make-instance 'http-parse:http-request))
-        (route nil))
-    (flet ((have-headers (headers)
-             (let ((found-route (find-route (http-parse:http-method http)
-                                            (http-parse:http-resource http))))
-               (setf route found-route)
-               (when (and found-route
-                          (getf found-route :allow-chunking))
-                 (dispatch-route route))))
-           (body-cb (chunk)
-             ;; TODO somehow get this chunk to function in the route
-             ))
+  (let* ((http (make-instance 'http-parse:http-request))
+         (route nil)
+         (route-dispatched nil)
+         (request (make-instance 'request :http http))
+         (response (make-instance 'response :socket sock)))
+    (labels ((dispatch-route ()
+               (when route-dispatched
+                 (return-from dispatch-route))
+               (format t "dispatch route: ~s~%" route)
+               (setf route-dispatched t)
+               (run-hooks :pre-route request response)
+               (if route
+                   (let ((route-fn (getf route :fn)))
+                     (funcall route-fn request response))
+                   (send-response response :status 404 :body "Page not found =["))
+               (run-hooks :post-route request response))
+             (header-callback (headers)
+               (format t "header cb: ~s~%" headers)
+               (let* ((method (http-parse:http-method http))
+                      (resource (http-parse:http-resource http))
+                      (found-route (find-route method resource)))
+                 (setf route found-route
+                       (request-method request) method
+                       (request-resource request) resource)
+                 (when (and found-route
+                            (getf found-route :allow-chunking))
+                   (dispatch-route))))
+             (body-callback (chunk finishedp)
+               (format t "body cb: ~a~%" (length chunk))
+               (let ((request-body-cb (request-body-callback request)))
+                 (when request-body-cb
+                   (funcall request-body-cb chunk)))
+               (when finishedp
+                 (dispatch-route)))
+             (finish-callback ()
+               (format t "finishcb~%")
+               (dispatch-route)))
       (let ((parser (http-parse:make-parser
                       http
+                      :header-callback #'header-callback
+                      :body-callback #'body-callback
+                      ; TODO multipart handling (tmp files, probably)
+                      :finish-callback #'finish-callback
                       :store-body t)))
         ;; attach parser to socket-data so we can deref it in the
         ;; read-cb
@@ -37,30 +66,9 @@
   ;; start the async server
   (as:tcp-server (acceptor-bind acceptor) (acceptor-port acceptor)
     (lambda (sock data)
-      ;; pull the parser out of the socket's data and see if we have a full
-      ;; request
+      ;; grab the parser stored in the socket and pipe the data into it
       (let ((parser (as:socket-data sock)))
-        (multiple-value-bind (http headers-parsed-p body-parsed-p)
-            (funcall parser data)
-          (when (and headers-parsed-p body-parsed-p) 
-            ;; we got a full request, parsed and ready to go, find a matching
-            ;; route
-            (let ((route-fn (find-route (http-parse:http-method http)
-                                        (http-parse:http-resource http)))
-                  (request (make-instance 'request
-                                          :method (http-parse:http-method http)
-                                          :resource (http-parse:http-resource http)
-                                          :http http))
-                  (response (make-instance 'response :socket sock)))
-              ;; run our pre-route hooks
-              (run-hooks :pre-route request response)
-              ;; call matching route or signal error
-              (if route-fn
-                  (funcall route-fn request response)
-                  ;; TODO replace with error hook
-                  (send-response response :status 404 :body "Page not found =["))
-              ;; run post-route hooks
-              (run-hooks :post-route request response))))))
+        (funcall parser data)))
     ;; handle socket events
     (lambda (ev)
       (format t "ev: ~a~%" ev))

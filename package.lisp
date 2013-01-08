@@ -14,6 +14,7 @@
            #:request-method
            #:request-resource
            #:request-plugin-data
+           #:request-body-callback
            #:request-http
            #:response
            #:response-headers

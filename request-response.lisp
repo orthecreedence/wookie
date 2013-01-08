@@ -4,13 +4,14 @@
   ((method :accessor request-method :initarg :method :initform :get)
    (resource :accessor request-resource :initarg :resource :initform "/")
    (plugin-data :accessor request-plugin-data :initarg :plugin-data :initform nil)
+   (body-callback :accessor request-body-callback :initarg :body-callback :initform nil)
    (http :accessor request-http :initarg :http :initform nil))
-  (:documentation "A class describing a request, passed to every route.")) 
+  (:documentation "A class describing a request, passed to every route."))
 
 (defclass response ()
   ((socket :accessor response-socket :initarg :socket :initform nil)
    (headers :accessor response-headers :initarg :headers :initform nil))
-  (:documentation "A class holding information about a response to the client.")) 
+  (:documentation "A class holding information about a response to the client."))
 
 (defun send-response (response &key (status 200) headers body close)
   "Send a response to an incoming request. Takes :status, :headers, and :body
@@ -28,7 +29,7 @@
                       headers))
          (socket (response-socket response))
          (status-text (lookup-status-text status)))
-    ;; make writing a single HTTP line a bit less painful 
+    ;; make writing a single HTTP line a bit less painful
     (flet ((write-http-line (format-str &rest format-args)
              (as:write-socket-data
                socket
@@ -62,7 +63,7 @@
 (defun start-response (response &key (status 200) headers)
   "Start a response to the client, but do not specify body content (or close the
    connection). Return a chunked (chunga) stream that can be used to send the
-   body content bit by bit until finished by calling finish-response." 
+   body content bit by bit until finished by calling finish-response."
   ;; we need to add in our own transfer header, so remove all others
   (dolist (head-list (list headers (response-headers response)))
     (remf head-list :content-length)
