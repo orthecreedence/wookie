@@ -7,27 +7,35 @@
    (ssl-cert :accessor acceptor-ssl-cert :initarg :ssl-cert :initform nil)
    (ssl-key :accessor acceptor-ssl-key :initarg :ssl-key :initform nil)))
 
+(defun route-not-found (response)
+  "Centralized function for handling the case of a missing router."
+  (send-response response :status 404 :body "Page not found =["))
+
 (defun handle-connection (sock)
   ;; TODO pass client address info into :connect hook
   (run-hooks :connect)
   (let* ((http (make-instance 'http-parse:http-request))
-         (route nil)
+         (route nil)  ; holds the current route, filled in below once we get headers
          (route-dispatched nil)
          (request (make-instance 'request :http http))
          (response (make-instance 'response :socket sock)))
     (labels ((dispatch-route ()
+               ;; dispatch the current route, but only if we haven't already done so
                (when route-dispatched
                  (return-from dispatch-route))
-               (format t "dispatch route: ~a~%~%" sock)
                (setf route-dispatched t)
                (run-hooks :pre-route request response)
                (if route
                    (let ((route-fn (getf route :curried-route)))
                      (funcall route-fn request response))
-                   (send-response response :status 404 :body "Page not found =["))
+                   (route-not-found response))
                (run-hooks :post-route request response))
              (header-callback (headers)
-               (format t "header cb: ~s~%" headers)
+               ;; if we got the headers, it means we can find the route we're
+               ;; destined to use. if the route accepts chunks and the body is
+               ;; chunked, run the router now so it can set up chunk listening.
+               ;; otherwise, save the route for later and let the rest of the
+               ;; request come in.
                (let* ((method (http-parse:http-method http))
                       (resource (http-parse:http-resource http))
                       (found-route (find-route method resource)))
@@ -40,15 +48,17 @@
                                                           #\return #\newline #\return #\newline))
                        (route-not-found response)))
                  (when (and found-route
+                            (string= (getf headers :transfer-encoding) "chunked")
                             (getf found-route :allow-chunking))
                    (dispatch-route))))
              (body-callback (chunk finishedp)
-               (format t "body cb: ~a, ~a~%" (length chunk) finishedp)
+               ;; forward the chunk to the callback provided in the chunk-enabled
+               ;; router
                (let ((request-body-cb (request-body-callback request)))
                  (when request-body-cb
                    (funcall request-body-cb chunk finishedp))))
              (finish-callback ()
-               ;(format t "finishcb~%")
+               ;; make sure we always dispatch at the end.
                (dispatch-route)))
       (let ((parser (http-parse:make-parser
                       http
@@ -70,7 +80,6 @@
   (as:tcp-server (acceptor-bind acceptor) (acceptor-port acceptor)
     (lambda (sock data)
       ;; grab the parser stored in the socket and pipe the data into it
-      ;(format t "readcb: ~a~%" (babel:octets-to-string data))
       (let ((parser (as:socket-data sock)))
         (funcall parser data)))
     ;; handle socket events
