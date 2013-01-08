@@ -1,18 +1,19 @@
 (defpackage :wookie
   (:use :cl)
-  (:export #:clear-routes
+  (:export #:*hide-version*
+           
+           #:clear-routes
            #:clear-route
            #:defroute
 
            #:clear-hooks
            #:add-hook
-
-           #:set-plugin-folder
-           #:load-plugins
+           #:remove-hook
 
            #:request
            #:request-method
            #:request-resource
+           #:request-plugin-data
            #:request-http
            #:response
            #:response-headers

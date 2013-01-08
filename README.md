@@ -6,9 +6,9 @@ image-conscious, and makes sounds like a wookie when you squeeze him. He views
 himself as royalty, and we are all forever in his debt for his invaluable gift
 of existing on the same planet as us. This project is dedicated to him.
 
-Wookie borrows ideas from the excellent hunchentoot. In fact, it may eventually
-turn into an asynchronous hunchentoot port, but it may also take its own road
-depending on how divergent the two become. It's all undecided.
+Wookie borrows ideas from the excellent Hunchentoot. Originally, the goal was to
+port Hunchentoot to async, but Wookie took a divergent turn and is now its own
+project.
 
 Wookie requires git versions of:
 

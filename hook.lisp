@@ -10,10 +10,24 @@
 
 (defun run-hooks (hook &rest args)
   "Run all hooks of a specific type."
-  (let ((callbacks (gethash hook *hooks*)))
-    (dolist (cb callbacks)
-      (apply cb args))))
+  (let ((hooks (gethash hook *hooks*)))
+    (dolist (hook hooks)
+      (apply (getf hook :function) args))))
 
-(defun add-hook (hook function)
+(defun add-hook (hook function &optional hook-name)
   "Add a hook into the wookie system."
-  (push function (gethash hook *hooks*)))
+  (push (list :function function
+              :name hook-name) (gethash hook *hooks*)))
+
+(defun remove-hook (hook function/hook-name)
+  "Remove a hook from a set of hooks by its function reference OR by the hook's
+   name given at add-hook."
+  (when (and function/hook-name
+             (gethash hook *hooks*))
+    (setf (gethash hook *hooks*) (remove-if (lambda (hook)
+                                              (let ((fn (getf hook :function))
+                                                    (name (getf hook :name)))
+                                                (or (eq fn function/hook-name)
+                                                    (eq name function/hook-name))))
+                                            (gethash hook *hooks*)))))
+

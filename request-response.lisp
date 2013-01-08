@@ -3,6 +3,7 @@
 (defclass request ()
   ((method :accessor request-method :initarg :method :initform :get)
    (resource :accessor request-resource :initarg :resource :initform "/")
+   (plugin-data :accessor request-plugin-data :initarg :plugin-data :initform nil)
    (http :accessor request-http :initarg :http :initform nil))
   (:documentation "A class describing a request, passed to every route.")) 
 
@@ -37,6 +38,12 @@
                               (append format-args (list #\return #\newline)))))))
       ;; write the status line
       (write-http-line "HTTP/1.1 ~a ~a" status status-text)
+      (unless (getf headers :server)
+        (setf headers (append headers
+                              (list :server (if *hide-version*
+                                                "Wookie"
+                                                (format nil "Wookie (~a)"
+                                                        (asdf:component-version (asdf:find-system :wookie))))))))
       ;; write all the headers
       (map-plist headers
                  (lambda (header value)
