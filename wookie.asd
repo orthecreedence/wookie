@@ -9,7 +9,8 @@
                #:cl-ppcre
                #:babel
                #:chunga
-               #:http-parse)
+               #:http-parse
+               #:cl-fad)
   :components
   ((:file "package")
    (:file "config" :depends-on ("package"))

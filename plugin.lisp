@@ -86,19 +86,16 @@
   (loop for name being the hash-keys of *plugins* do
     (unload-plugin name))
   (dolist (plugin-folder *plugin-folders*)
-    (let ((scan (concatenate 'string (namestring plugin-folder) "*")))
-      (dolist (dir (directory scan))
-        (let* ((dirstr (namestring dir))
-               (last-char (aref dirstr (1- (length dirstr))))
-               (plugin-name (aref (cadr (multiple-value-list (cl-ppcre:scan-to-strings *scanner-plugin-name* dirstr))) 0))
-               (plugin-name (intern (string-upcase plugin-name) :keyword)))
-          (when (and (or (eq last-char #\/)
-                         (eq last-char #\\))
-                     (find plugin-name *enabled-plugins*))
-            (let ((plugin-file (concatenate 'string dirstr
-                                            "plugin.lisp")))
-              (when (probe-file plugin-file)
-                (when compile
-                  (setf plugin-file (compile-file plugin-file)))
-                (load plugin-file)))))))))
+    (dolist (dir (cl-fad:list-directory plugin-folder))
+      (let* ((dirstr (namestring dir))
+             (plugin-name (aref (cadr (multiple-value-list (cl-ppcre:scan-to-strings *scanner-plugin-name* dirstr))) 0))
+             (plugin-name (intern (string-upcase plugin-name) :keyword)))
+        (when (and (cl-fad:directory-exists-p dir)
+                   (find plugin-name *enabled-plugins*))
+          (let ((plugin-file (concatenate 'string dirstr
+                                          "plugin.lisp")))
+            (when (cl-fad:file-exists-p plugin-file)
+              (when compile
+                (setf plugin-file (compile-file plugin-file)))
+              (load plugin-file))))))))
 
