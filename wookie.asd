@@ -10,6 +10,8 @@
                #:babel
                #:chunga
                #:http-parse
+               #:puri
+               #:do-urlencode
                #:cl-fad)
   :components
   ((:file "package")

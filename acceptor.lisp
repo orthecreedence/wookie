@@ -46,15 +46,32 @@
                ;; request come in.
                (let* ((method (http-parse:http-method http))
                       (resource (http-parse:http-resource http))
-                      (found-route (find-route method resource)))
+                      (parsed-uri (puri:parse-uri resource))
+                      (path (puri:uri-path parsed-uri))
+                      (found-route (find-route method path)))
+                 ;; save the parsed uri for plugins/later code
+                 (setf (request-uri request) parsed-uri)
+                 (run-hooks :parsed-headers request)
+                 ;; save any GET data into the request object
+                 ;; TODO: investigate making this, POST, multipart, and cookies
+                 ;; all plugins (multipart being the trickiest since it would have
+                 ;; to intercept chunked data...)
+                 (map-querystring (puri:uri-query parsed-uri)
+                   (lambda (key value)
+                     (setf (gethash key (request-get-data request)) value)))
+                 ;; set up some tracking/state values now that we have headers
                  (setf route found-route
                        (request-method request) method
                        (request-resource request) resource)
+                 ;; handle "Expect: 100-continue" properly
                  (when (string= (getf headers :expect) "100-continue")
                    (if found-route
                        (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
                                                           #\return #\newline #\return #\newline))
                        (route-not-found response)))
+                 ;; if we found a route, the route allows chunking, and we have
+                 ;; chunked data, call the route now so it can set up its chunk
+                 ;; handler before we start streaming the body chunks to it
                  (when (and found-route
                             (string= (getf headers :transfer-encoding) "chunked")
                             (getf found-route :allow-chunking))
@@ -81,7 +98,7 @@
 
 (defgeneric start-server (acceptor)
   (:documentation
-    "Start wookie with the given acceptor."))
+    "Start Wookie with the given acceptor."))
 
 (defmethod start-server ((acceptor acceptor))
   ;; start the async server

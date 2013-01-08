@@ -25,6 +25,30 @@
           (setf (aref lower i) (aref (string-upcase (string c)) 0)))))
     lower))
 
+(defparameter *scanner-querystring-p*
+  (cl-ppcre:create-scanner "^([a-z-_]+(=[^&]+)?(&|$))+" :case-insensitive-mode t)
+  "Detects a querystring.")
+
+(defun querystringp (querystring)
+  "Detects if the given string is an HTTP querystring."
+  (cl-ppcre:scan *scanner-querystring-p* querystring))
+
+(defun map-querystring (querystring function)
+  "Map a function that takes key and value args across a querystring."
+  (let ((last-split 0))
+    (loop for search-pos = (position #\& querystring :start last-split) do
+      (let* ((entry (subseq querystring last-split search-pos))
+             (equal-pos (position #\= entry))
+             (key (subseq entry 0 equal-pos))
+             (value (if equal-pos
+                        (subseq entry (1+ equal-pos))
+                        ""))
+             (value (do-urlencode:urldecode value :lenientp t)))
+        (unless (string= key "")
+          (funcall function key value)))
+      (unless search-pos (return))
+      (setf last-split (1+ search-pos)))))
+
 (defun lookup-status-text (status-code)
   "Get the HTTP standard text that goes along with a status code."
   (case status-code
