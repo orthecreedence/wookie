@@ -1,5 +1,5 @@
 (defpackage :wookie
-  (:use :cl)
+  (:use :cl :wookie-util)
   (:export #:*hide-version*
            
            #:clear-routes
@@ -13,6 +13,8 @@
            #:request
            #:request-method
            #:request-resource
+           #:request-headers
+           #:request-uri
            #:request-plugin-data
            #:request-body-callback
            #:request-http

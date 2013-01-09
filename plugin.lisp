@@ -6,12 +6,13 @@
 
 (defpackage :wookie-plugin
   (:use :cl :wookie)
-  (:export :register-plugin
-           :set-plugin-request-data
-           :get-plugin-request-data
-           :*plugin-folders*
-           :*enabled-plugins*
-           :load-plugins)
+  (:export #:register-plugin
+           #:set-plugin-request-data
+           #:get-plugin-request-data
+           #:*plugin-folders*
+           #:*enabled-plugins*
+           #:load-plugins
+           #:defplugfun)
   (:import-from :wookie))
 (in-package :wookie-plugin)
 
@@ -19,9 +20,10 @@
   "A hash table holding all registered Wookie plugins.")
 (defvar *plugin-config* nil
   "A hash table holding configuration values for all plugins.")
-(defvar *plugin-folders* '("./wookie-plugins/")
+(defvar *plugin-folders* (list "./wookie-plugins/"
+                               (asdf:system-relative-pathname :wookie #P"wookie-plugins/"))
   "A list of directories where Wookie plugins can be found.")
-(defvar *enabled-plugins* nil
+(defvar *enabled-plugins* '(:get :post :multipart :cookie)
   "A list of (keyword) names of enabled plugins.")
 
 (defun register-plugin (plugin-name meta init-function unload-function)
@@ -98,4 +100,13 @@
               (when compile
                 (setf plugin-file (compile-file plugin-file)))
               (load plugin-file))))))))
+
+(defmacro defplugfun (name args &body body)
+  "Define a plugin function that is exported to the :wookie-plugin-export
+   package."
+  `(progn
+     (defun ,name ,args ,@body)
+     (shadowing-import ',name :wookie-plugin-export)
+     (export ',name :wookie-plugin-export)))
+
 

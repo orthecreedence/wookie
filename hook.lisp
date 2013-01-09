@@ -19,8 +19,7 @@
    added."
   ;; append instead of push since we want them to run in the order they were added
   (alexandria:appendf (gethash hook *hooks*)
-                      (list :function function
-                            :name hook-name)))
+                      (list (list :function function :name hook-name))))
 
 (defun remove-hook (hook function/hook-name)
   "Remove a hook from a set of hooks by its function reference OR by the hook's

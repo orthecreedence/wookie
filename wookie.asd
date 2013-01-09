@@ -14,11 +14,11 @@
                #:do-urlencode
                #:cl-fad)
   :components
-  ((:file "package")
+  ((:file "util")
+   (:file "package" :depends-on ("util"))
    (:file "config" :depends-on ("package"))
-   (:file "util" :depends-on ("config"))
-   (:file "route" :depends-on ("util"))
-   (:file "plugin" :depends-on ("util"))
-   (:file "hook" :depends-on ("util"))
-   (:file "request-response" :depends-on ("util"))
+   (:file "route" :depends-on ("config"))
+   (:file "plugin" :depends-on ("config"))
+   (:file "hook" :depends-on ("config"))
+   (:file "request-response" :depends-on ("config"))
    (:file "acceptor" :depends-on ("request-response" "route" "hook" "plugin"))))

@@ -50,15 +50,9 @@
                       (path (puri:uri-path parsed-uri))
                       (found-route (find-route method path)))
                  ;; save the parsed uri for plugins/later code
-                 (setf (request-uri request) parsed-uri)
+                 (setf (request-uri request) parsed-uri
+                       (request-headers request) headers)
                  (run-hooks :parsed-headers request)
-                 ;; save any GET data into the request object
-                 ;; TODO: investigate making this, POST, multipart, and cookies
-                 ;; all plugins (multipart being the trickiest since it would have
-                 ;; to intercept chunked data...)
-                 (map-querystring (puri:uri-query parsed-uri)
-                   (lambda (key value)
-                     (setf (gethash key (request-get-data request)) value)))
                  ;; set up some tracking/state values now that we have headers
                  (setf route found-route
                        (request-method request) method
@@ -79,11 +73,13 @@
              (body-callback (chunk finishedp)
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
+               (run-hooks :body-chunk request chunk finishedp)
                (let ((request-body-cb (request-body-callback request)))
                  (when request-body-cb
                    (funcall request-body-cb chunk finishedp))))
              (finish-callback ()
                ;; make sure we always dispatch at the end.
+               (run-hooks :body-complete request)
                (dispatch-route)))
       (let ((parser (http-parse:make-parser
                       http

@@ -1,4 +1,12 @@
-(in-package :wookie)
+(defpackage :wookie-util
+  (:use :cl)
+  (:export #:map-plist
+           #:camel-case
+           #:querystringp
+           #:map-querystring
+           #:body-to-string
+           #:lookup-status-text))
+(in-package :wookie-util)
 
 (defun map-plist (plist fn)
   "Iterate over a plist"
@@ -48,6 +56,20 @@
           (funcall function key value)))
       (unless search-pos (return))
       (setf last-split (1+ search-pos)))))
+
+(defun body-to-string (body-bytes content-type-header)
+  "Given a byte vector of HTTP body data and the value of a Content-Type header,
+   convert the body to a string via the charset provided in the header. If a
+   character encoding is not provided, go with the HTTP default, ISO-8859-1."
+  (let* ((charset-pos (search "charset=" content-type-header))
+         (charset (if charset-pos
+                      (intern (string-upcase (subseq content-type-header
+                                                     (+ charset-pos 8))) :keyword)
+                      :iso-8859-1)))
+    (handler-case
+      (babel:octets-to-string body-bytes :encoding charset)
+      (t ()
+        (babel:octets-to-string body-bytes :encoding :iso-8859-1))))) 
 
 (defun lookup-status-text (status-code)
   "Get the HTTP standard text that goes along with a status code."
