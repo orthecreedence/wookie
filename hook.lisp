@@ -15,9 +15,12 @@
       (apply (getf hook :function) args))))
 
 (defun add-hook (hook function &optional hook-name)
-  "Add a hook into the wookie system."
-  (push (list :function function
-              :name hook-name) (gethash hook *hooks*)))
+  "Add a hook into the wookie system. Hooks will be run in the order they were
+   added."
+  ;; append instead of push since we want them to run in the order they were added
+  (alexandria:appendf (gethash hook *hooks*)
+                      (list :function function
+                            :name hook-name)))
 
 (defun remove-hook (hook function/hook-name)
   "Remove a hook from a set of hooks by its function reference OR by the hook's
