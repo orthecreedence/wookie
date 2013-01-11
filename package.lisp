@@ -27,5 +27,6 @@
            #:finish-response
 
            #:listener
+           #:ssl-listener
            #:start-server))
 

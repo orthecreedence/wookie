@@ -2,13 +2,14 @@
 
 (defclass listener ()
   ((bind :accessor listener-bind :initarg :bind :initform nil)
-   (port :accessor listener-port :initarg :port :initform 80))
+   (port :accessor listener-port :initarg :port :initform 80)
+   (backlog :accessor listener-backlog :initarg :backlog :initform -1))
   (:documentation "Describes an HTTP listener."))
 
 (defclass ssl-listener (listener)
-  ((ssl :accessor listener-ssl :initarg :ssl :initform nil)
-   (ssl-cert :accessor listener-ssl-cert :initarg :ssl-cert :initform nil)
-   (ssl-key :accessor listener-ssl-key :initarg :ssl-key :initform nil))
+  ((certificate :accessor listener-certificate :initarg :certificate :initform nil)
+   (key :accessor listener-key :initarg :key :initform nil)
+   (password :accessor listener-password :initarg :password :initform nil))
   (:documentation "Describes an HTTPS listener."))
 
 (defun route-not-found (response)
@@ -85,16 +86,25 @@
                ;; make sure we always dispatch at the end.
                (run-hooks :body-complete request)
                (dispatch-route)))
+      ;; make an HTTP parser. will be attached to the socket and will be
+      ;; responsible for running all of the above callbacks directly as data
+      ;; filters in from the read callback.
       (let ((parser (http-parse:make-parser
                       http
                       :header-callback #'header-callback
                       :body-callback #'body-callback
-                      ; TODO multipart handling (tmp files, probably)
                       :finish-callback #'finish-callback
                       :store-body t)))
-        ;; attach parser to socket-data so we can deref it in the
-        ;; read-cb
+        ;; attach parser to socket-data so we can deref it in the read callback
         (setf (as:socket-data sock) parser)))))
+
+(defun read-data (sock data)
+  "A simple read-cb handler that passed data to the HTTP parser attached to the
+   socket the data is coming in on. The parser runs all necessary callbacks
+   directly, so this function just blindly feeds the data in."
+  ;; grab the parser stored in the socket and pipe the data into it
+  (let ((parser (as:socket-data sock)))
+    (funcall parser data)))
 
 (defgeneric start-server (listener)
   (:documentation
@@ -103,10 +113,19 @@
 (defmethod start-server ((listener listener))
   ;; start the async server
   (as:tcp-server (listener-bind listener) (listener-port listener)
-    (lambda (sock data)
-      ;; grab the parser stored in the socket and pipe the data into it
-      (let ((parser (as:socket-data sock)))
-        (funcall parser data)))
+    #'read-data
     #'event-handler
-    :connect-cb #'handle-connection))
+    :connect-cb #'handle-connection
+    :backlog (listener-backlog listener)))
+
+(defmethod start-server ((listener ssl-listener))
+  ;; start the async SSL server
+  (as-ssl:tcp-ssl-server (listener-bind listener) (listener-port listener)
+    #'read-data
+    #'event-handler
+    :connect-cb #'handle-connection
+    :certificate (listener-certificate listener)
+    :key (listener-key listener)
+    :password (listener-password listener)
+    :backlog (listener-backlog listener)))
 
