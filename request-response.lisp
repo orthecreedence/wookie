@@ -26,6 +26,26 @@
   `(setf (request-body-callback ,request) (lambda (,chunk-data ,last-chunk-p)
                                             ,@body)))
 
+(defun add-default-headers (headers)
+  "Add a number of default headers to a headers plist. If one of the default
+   headers is already present, do NOT overwrite it. This allows the app to set
+   its own headers that can override the defaults."
+  (flet ((prepend-header-if-not-exists (key val)
+           (unless (getf headers key)
+             (setf headers (append (list key val) headers)))))
+    (prepend-header-if-not-exists :date
+                                  (local-time:format-timestring
+                                    nil
+                                    (local-time:now)
+                                    :format local-time:+rfc-1123-format+))
+    (prepend-header-if-not-exists :server
+                                  (if *hide-version*
+                                      "Wookie"
+                                      (format nil "Wookie (~a)"
+                                              (asdf:component-version
+                                                (asdf:find-system :wookie))))))
+  headers)
+
 (defun send-response (response &key (status 200) headers body close)
   "Send a response to an incoming request. Takes :status, :headers, and :body
    keyword arguments, which together form an entire response.
@@ -52,12 +72,7 @@
                               (append format-args (list #\return #\newline)))))))
       ;; write the status line
       (write-http-line "HTTP/1.1 ~a ~a" status status-text)
-      (unless (getf headers :server)
-        (setf headers (append headers
-                              (list :server (if *hide-version*
-                                                "Wookie"
-                                                (format nil "Wookie (~a)"
-                                                        (asdf:component-version (asdf:find-system :wookie))))))))
+      (setf headers (add-default-headers headers))
       ;; write all the headers
       (map-plist headers
                  (lambda (header value)
