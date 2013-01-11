@@ -26,7 +26,7 @@
          (route nil)  ; holds the current route, filled in below once we get headers
          (route-dispatched nil)
          (request (make-instance 'request :http http))
-         (response (make-instance 'response :socket sock)))
+         (response (make-instance 'response :socket sock :request request)))
     (labels ((dispatch-route ()
                ;; dispatch the current route, but only if we haven't already done so
                (when route-dispatched

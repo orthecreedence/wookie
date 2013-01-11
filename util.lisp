@@ -5,6 +5,8 @@
            #:querystringp
            #:map-querystring
            #:body-to-string
+           #:*tmp-file-store*
+           #:generate-tmp-file-name
            #:lookup-status-text))
 (in-package :wookie-util)
 
@@ -71,6 +73,17 @@
       (t ()
         (babel:octets-to-string body-bytes :encoding :iso-8859-1))))) 
 
+(defvar *tmp-file-store* (asdf:system-relative-pathname :wookie #p"upload-tmp/")
+  "Stores the path to where uploads/temporary files go.")
+
+(defvar *tmp-file-counter* 0
+  "Holds a value that is incremented for each temporary file generated.")
+
+(defun generate-tmp-file-name ()
+  "Generate the a full path/filename for a temporary file that does not exist
+   already in the tmp directory."
+  (format nil "~atmp~a" (namestring *tmp-file-store*) (incf *tmp-file-counter*)))
+   
 (defun lookup-status-text (status-code)
   "Get the HTTP standard text that goes along with a status code."
   (case status-code

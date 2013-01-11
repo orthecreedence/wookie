@@ -1,6 +1,7 @@
 (defpackage :wookie
   (:use :cl :wookie-util)
   (:export #:*hide-version*
+           #:*tmp-file-store*
            
            #:clear-routes
            #:clear-route
