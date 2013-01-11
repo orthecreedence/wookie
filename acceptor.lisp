@@ -1,14 +1,14 @@
 (in-package :wookie)
 
-(defclass acceptor ()
-  ((bind :accessor acceptor-bind :initarg :bind :initform nil)
-   (port :accessor acceptor-port :initarg :port :initform 80))
+(defclass listener ()
+  ((bind :accessor listener-bind :initarg :bind :initform nil)
+   (port :accessor listener-port :initarg :port :initform 80))
   (:documentation "Describes an HTTP listener."))
 
-(defclass ssl-acceptor (acceptor)
-  ((ssl :accessor acceptor-ssl :initarg :ssl :initform nil)
-   (ssl-cert :accessor acceptor-ssl-cert :initarg :ssl-cert :initform nil)
-   (ssl-key :accessor acceptor-ssl-key :initarg :ssl-key :initform nil))
+(defclass ssl-listener (listener)
+  ((ssl :accessor listener-ssl :initarg :ssl :initform nil)
+   (ssl-cert :accessor listener-ssl-cert :initarg :ssl-cert :initform nil)
+   (ssl-key :accessor listener-ssl-key :initarg :ssl-key :initform nil))
   (:documentation "Describes an HTTPS listener."))
 
 (defun route-not-found (response)
@@ -96,13 +96,13 @@
         ;; read-cb
         (setf (as:socket-data sock) parser)))))
 
-(defgeneric start-server (acceptor)
+(defgeneric start-server (listener)
   (:documentation
-    "Start Wookie with the given acceptor."))
+    "Start Wookie with the given listener."))
 
-(defmethod start-server ((acceptor acceptor))
+(defmethod start-server ((listener listener))
   ;; start the async server
-  (as:tcp-server (acceptor-bind acceptor) (acceptor-port acceptor)
+  (as:tcp-server (listener-bind listener) (listener-port listener)
     (lambda (sock data)
       ;; grab the parser stored in the socket and pipe the data into it
       (let ((parser (as:socket-data sock)))
