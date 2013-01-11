@@ -5,7 +5,7 @@
   :description "An evented webserver for Common Lisp."
   :depends-on (#:alexandria
                #:cl-async 
-               #+(or :wookie-no-ssl) #:cl-async-ssl
+               #-(or :wookie-no-ssl) #:cl-async-ssl
                #:cl-ppcre
                #:babel
                #:chunga
