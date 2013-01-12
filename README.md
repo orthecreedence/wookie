@@ -22,9 +22,10 @@ For the brave
 (ql:quickload :wookie)  ; make sure it's in your ASD path or local-projects/
 
 (defpackage :wookie-test
-  (:use :cl))
+  (:use :cl :wookie-plugin-export))
 (in-package :wookie-test)
 
+(wookie:load-plugins)  ; loads GET, POST, multipart handlers (see wookie-plugins/)
 (wookie:clear-routes)
 
 (wookie:defroute (:get "/") (req res)

@@ -26,6 +26,8 @@
            #:start-response
            #:finish-response
 
+           #:load-plugins
+
            #:listener
            #:ssl-listener
            #:start-server))
