@@ -14,17 +14,16 @@
                          (flet ((save-form-data ()
                                   ;; make accessing the form data hash value less painful
                                   (symbol-macrolet ((hash-set (gethash field-name hash-form-vars)))
-                                    (let ((hash-val hash-set))
-                                      ;; if we don't have an array under the hash value yet, init one
-                                      (unless hash-val
-                                        (setf hash-set (make-array 0 :element-type '(unsigned-byte 8))))
-                                      ;; append the data
-                                      (setf hash-set (cl-async-util::append-array
-                                                       hash-val
-                                                       body-bytes))
-                                      ;; once this field is complete, convert the body to a string
-                                      (when body-complete-p
-                                        (setf hash-set (body-to-string hash-val (getf field-headers :content-type)))))))
+                                    ;; if we don't have an array under the hash value yet, init one
+                                    (unless hash-set
+                                      (setf hash-set (make-array 0 :element-type '(unsigned-byte 8))))
+                                    ;; append the data
+                                    (setf hash-set (cl-async-util::append-array
+                                                     hash-set
+                                                     body-bytes))
+                                    ;; once this field is complete, convert the body to a string
+                                    (when body-complete-p
+                                      (setf hash-set (body-to-string hash-set (getf field-headers :content-type))))))
                                 (save-file-data ()
                                   ;; open a tmp file for writing if we don't already have a handle
                                   (unless cur-file
@@ -104,9 +103,9 @@
     (gethash field-name hash-form-vars)))
 
 (defun init-multipart-vars ()
-  (wookie:add-hook :parsed-headers #'check-if-multipart :multipart-core-check-multipart)
-  (wookie:add-hook :body-chunk #'parse-multipart-vars :multipart-core-parse-multipart)
-  (wookie:add-hook :response-started #'remove-tmp-files :multipart-core-remove-tmp))
+  (wookie:add-hook :parsed-headers 'check-if-multipart :multipart-core-check-multipart)
+  (wookie:add-hook :body-chunk 'parse-multipart-vars :multipart-core-parse-multipart)
+  (wookie:add-hook :response-started 'remove-tmp-files :multipart-core-remove-tmp))
 
 (defun unload-multipart-vars ()
   (wookie:remove-hook :parsed-headers :multipart-core-plugin)
