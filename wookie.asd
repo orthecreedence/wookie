@@ -22,4 +22,6 @@
    (:file "plugin" :depends-on ("config"))
    (:file "hook" :depends-on ("config"))
    (:file "request-response" :depends-on ("config"))
-   (:file "listener" :depends-on ("request-response" "route" "hook" "plugin"))))
+   (:file "listener" :depends-on ("request-response" "route" "hook" "plugin"))
+   #-(or :wookie-no-ssl)
+   (:file "listener-ssl" :depends-on ("listener"))))

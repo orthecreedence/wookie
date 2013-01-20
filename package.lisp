@@ -29,6 +29,6 @@
            #:load-plugins
 
            #:listener
-           #:ssl-listener
+           #-(or :wookie-no-ssl) #:ssl-listener
            #:start-server))
 
