@@ -118,6 +118,6 @@
   '(:name "Wookie core multipart plugin"
     :author "Andrew Lyon"
     :version "0.1.0")
-  #'init-multipart-vars
-  #'unload-multipart-vars)
+  'init-multipart-vars
+  'unload-multipart-vars)
 

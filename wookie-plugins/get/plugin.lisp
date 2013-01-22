@@ -27,6 +27,6 @@
   '(:name "Wookie core GET plugin"
     :author "Andrew Lyon"
     :version "0.1.0")
-  #'init-get-vars
-  #'unload-get-vars)
+  'init-get-vars
+  'unload-get-vars)
 

@@ -47,6 +47,6 @@
   '(:name "Wookie core POST plugin"
     :author "Andrew Lyon"
     :version "0.1.0")
-  #'init-post-vars
-  #'unload-post-vars)
+  'init-post-vars
+  'unload-post-vars)
 
