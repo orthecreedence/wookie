@@ -13,15 +13,16 @@
                #:puri
                #:local-time
                #:do-urlencode
-               #:cl-fad)
+               #:cl-fad
+			   #:zsort)
   :components
   ((:file "util")
    (:file "package" :depends-on ("util"))
    (:file "config" :depends-on ("package"))
-   (:file "route" :depends-on ("config"))
+   (:file "error-handler" :depends-on ("config"))
+   (:file "route" :depends-on ("error-handler"))
    (:file "plugin" :depends-on ("config"))
    (:file "hook" :depends-on ("config"))
-   (:file "request-response" :depends-on ("config"))
+   (:file "request-response" :depends-on ("error-handler"))
    (:file "listener" :depends-on ("request-response" "route" "hook" "plugin"))
-   #-(or :wookie-no-ssl)
-   (:file "listener-ssl" :depends-on ("listener"))))
+   #-(or :wookie-no-ssl) (:file "listener-ssl" :depends-on ("listener"))))

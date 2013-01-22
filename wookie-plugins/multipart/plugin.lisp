@@ -85,9 +85,10 @@
   (declare (ignore response status headers body))
   (let ((files (getf (wookie-plugin:get-plugin-request-data :multipart request)
                      :hash-file)))
-    (loop for file-entry being the hash-values of files do
-      (let ((tmp-filename (getf file-entry :tmp-file)))
-        (ignore-errors (delete-file tmp-filename))))))
+    (when files
+      (loop for file-entry being the hash-values of files do
+        (let ((tmp-filename (getf file-entry :tmp-file)))
+          (ignore-errors (delete-file tmp-filename)))))))
 
 (defplugfun form-var (request field-name)
   "Get a value from the multipart data by its field name (string)."

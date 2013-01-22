@@ -9,9 +9,9 @@
 (defmethod start-server ((listener ssl-listener))
   ;; start the async SSL server
   (as-ssl:tcp-ssl-server (listener-bind listener) (listener-port listener)
-    #'read-data
-    #'event-handler
-    :connect-cb #'handle-connection
+    'read-data
+    'listener-event-handler
+    :connect-cb 'handle-connection
     :certificate (listener-certificate listener)
     :key (listener-key listener)
     :password (listener-password listener)

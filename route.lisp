@@ -1,5 +1,14 @@
 (in-package :wookie)
 
+(define-condition route-error (wookie-error)
+  ((resource :initarg :resource :reader route-error-resource :initform nil))
+  (:report (lambda (c s) (format s "Routing error: ~s" (route-error-resource c))))
+  (:documentation "Describes a general routing error."))
+
+(define-condition route-not-found (route-error) ()
+  (:report (lambda (c s) (format s "Routing error: route not found for ~s" (route-error-resource c))))
+  (:documentation "Describes a route not found error."))
+
 (defvar *routes* (make-array 0 :adjustable t :fill-pointer t) 
   "Holds all the routes for the system.") 
 
