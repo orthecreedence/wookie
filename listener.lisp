@@ -131,9 +131,9 @@
       ;; filters in from the read callback.
       (let ((parser (http-parse:make-parser
                       http
-                      :header-callback 'header-callback
-                      :body-callback 'body-callback
-                      :finish-callback 'finish-callback
+                      :header-callback #'header-callback
+                      :body-callback #'body-callback
+                      :finish-callback #'finish-callback
                       :store-body t)))
         ;; attach parser to socket-data so we can deref it in the read callback
         (setf (getf (as:socket-data sock) :parser) parser)))))
