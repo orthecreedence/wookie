@@ -1,9 +1,6 @@
 Wookie
 ======
-<div style="float: left;">
-    <img src="http://orthecreedence.github.com/wookie/wookie-smile_small.jpg"
-         alt="Wookie accepts our servitude." />
-</div>
+[[http://orthecreedence.github.com/wookie/wookie-smile_small.jpg|float=left|alt=Wookie accepts our servitude]]
 Wookie is an asynchronous HTTP server written in common lisp. It is not for
 public use, yet. It's named after my dog who is extremely tempermental, 
 image-conscious, and makes sounds like a wookie when you squeeze him. He views
