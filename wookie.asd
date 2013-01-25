@@ -16,13 +16,13 @@
                #:cl-fad
                #:zsort)
   :components
-  ((:file "util")
+  ((:file "config")
+   (:file "util" :depends-on ("config"))
    (:file "package" :depends-on ("util"))
-   (:file "config" :depends-on ("package"))
-   (:file "error-handler" :depends-on ("config"))
+   (:file "error-handler" :depends-on ("package"))
    (:file "route" :depends-on ("error-handler"))
-   (:file "plugin" :depends-on ("config"))
-   (:file "hook" :depends-on ("config"))
+   (:file "plugin" :depends-on ("package"))
+   (:file "hook" :depends-on ("package"))
    (:file "request-response" :depends-on ("error-handler"))
    (:file "listener" :depends-on ("request-response" "route" "hook" "plugin"))
    #-(or :wookie-no-ssl) (:file "listener-ssl" :depends-on ("listener"))))

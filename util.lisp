@@ -1,15 +1,23 @@
 (defpackage :wookie-util
-  (:use :cl)
-  (:export #:map-plist
+  (:use :cl :wookie-config)
+  (:export #:wlog
+           #:map-plist
            #:camel-case
            #:querystringp
            #:map-querystring
            #:body-to-string
-           #:*tmp-file-store*
            #:generate-tmp-file-name
            #:lookup-status-text))
 (in-package :wookie-util)
 
+(defvar *tmp-file-counter* 0
+  "Holds a value that is incremented for each temporary file generated.")
+
+(defun wlog (level format-string &rest format-args)
+  "Wookie's logging function. simple for now, just sends to STDOUT."
+  (when (<= level *log-level*)
+    (apply #'format (append (list t format-string) format-args))))
+  
 (defun map-plist (plist fn)
   "Iterate over a plist"
   (dotimes (i (/ (length plist) 2))
@@ -72,12 +80,6 @@
       (babel:octets-to-string body-bytes :encoding charset)
       (t ()
         (babel:octets-to-string body-bytes :encoding :iso-8859-1))))) 
-
-(defvar *tmp-file-store* (asdf:system-relative-pathname :wookie #p"upload-tmp/")
-  "Stores the path to where uploads/temporary files go.")
-
-(defvar *tmp-file-counter* 0
-  "Holds a value that is incremented for each temporary file generated.")
 
 (defun generate-tmp-file-name ()
   "Generate the a full path/filename for a temporary file that does not exist

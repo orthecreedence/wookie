@@ -5,7 +5,7 @@
   (:use :cl))
 
 (defpackage :wookie-plugin
-  (:use :cl :wookie)
+  (:use :cl :wookie-config :wookie-util :wookie)
   (:export #:register-plugin
            #:set-plugin-request-data
            #:get-plugin-request-data
@@ -36,6 +36,7 @@
    about the plugin (name, author, description, etc), and init-fn is the
    initialization function called that loads the plugin (called only once, on
    register)."
+  (wlog +log-debug+ "(plugin) Register plugin ~s (~s)~%" plugin-name meta)
   (let ((plugin-entry (list :name plugin-name
                             :meta meta
                             :init-function init-function
@@ -57,6 +58,7 @@
    
    Also unloads any current plugins that depend on this plugin. Does this
    recursively so all depencies are always resolved."
+  (wlog +log-debug+ "(plugin) Unload plugin ~s~%" plugin-name)
   ;; unload the plugin
   (let ((plugin (gethash plugin-name *plugins*)))
     (when plugin
@@ -88,6 +90,7 @@
    storing the data into the request's plugin data. This function allows this by
    taking the plugin-name (keyword), request object passed into the route, and
    the data to store."
+  (wlog +log-debug+ "(plugin) Set plugin data ~s: ~a~%" plugin-name data)
   (unless (hash-table-p (request-plugin-data request))
     (setf (request-plugin-data request) (make-hash-table :test #'eq)))
   (setf (gethash plugin-name (request-plugin-data request)) data))
@@ -108,6 +111,8 @@
     (loop for plugin-entry being the hash-values of *plugins* do
       (let ((dependencies (getf (getf plugin-entry :meta) :depends-on)))
         (when dependencies
+          (wlog +log-debug+ "(plugin) Resolve ~s dependencies: ~s~%"
+                            (getf plugin-entry :name) dependencies)
           (dolist (dep dependencies)
             ;; TODO: try optima for this shit
             (let ((available-dep (find dep *available-plugins*
@@ -135,6 +140,7 @@
 (defun load-plugins (&key compile)
   "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
    There is also the option to compile the plugins (default nil)."
+  (wlog +log-debug+ "(plugin) Load plugins~%")
   (unless *plugins*
     (setf *plugins* (make-hash-table :test #'eq)))
   ;; unload current plugins
@@ -149,10 +155,13 @@
         (when (cl-fad:directory-exists-p dir)
           (let ((plugin-file (concatenate 'string dirstr
                                           "plugin.lisp")))
-            (when (cl-fad:file-exists-p plugin-file)
-              (when compile
-                (setf plugin-file (compile-file plugin-file)))
-              (load plugin-file)))))))
+            (if (cl-fad:file-exists-p plugin-file)
+                (progn
+                  (wlog +log-debug+ "(plugin) Loading ~a~%" plugin-file)
+                  (when compile
+                    (setf plugin-file (compile-file plugin-file)))
+                  (load plugin-file))
+                (wlog +log-notice+ "(plugin) Missing ~a~%" plugin-file)))))))
   (resolve-dependencies))
 
 (defmacro defplugfun (name args &body body)

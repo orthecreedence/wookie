@@ -4,12 +4,16 @@
 
 (defun clear-hooks (&optional hook)
   "Clear all hooks (default) or optionally a specific hook type."
+  (wlog +log-debug+ "(hook) Clearing ~a~%" (if hook
+                                               (format nil "hook ~s~%" hook)
+                                               "all hooks"))
   (if hook
       (setf (gethash hook *hooks*) nil)
       (setf *hooks* (make-hash-table :size 10 :test #'eq))))
 
 (defun run-hooks (hook &rest args)
   "Run all hooks of a specific type."
+  (wlog +log-debug+ "(hook) Run ~s (~a)~%" hook args)
   (let ((hooks (gethash hook *hooks*)))
     (dolist (hook hooks)
       (apply (getf hook :function) args))))
@@ -17,6 +21,9 @@
 (defun add-hook (hook function &optional hook-name)
   "Add a hook into the wookie system. Hooks will be run in the order they were
    added."
+  (wlog +log-debug+ "(hook) Adding hook ~s ~a~%" hook (if hook-name
+                                                          (format nil "(~s)" hook-name)
+                                                          ""))
   ;; append instead of push since we want them to run in the order they were added
   (alexandria:appendf (gethash hook *hooks*)
                       (list (list :function function :name hook-name))))
@@ -26,6 +33,7 @@
    name given at add-hook."
   (when (and function/hook-name
              (gethash hook *hooks*))
+    (wlog +log-debug+ "(hook) Remove hook ~s~%" hook)
     (setf (gethash hook *hooks*) (remove-if (lambda (hook)
                                               (let ((fn (getf hook :function))
                                                     (name (getf hook :name)))

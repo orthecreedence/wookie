@@ -1,6 +1,16 @@
 (defpackage :wookie
-  (:use :cl :wookie-util)
-  (:export #:*hide-version*
+  (:use :cl :wookie-config :wookie-util)
+  (:export #:+log-emerg+
+           #:+log-alert+
+           #:+log-crit+
+           #:+log-err+
+           #:+log-warning+
+           #:+log-notice+
+           #:+log-info+
+           #:+log-debug+
+           #:*log-level*
+
+           #:*hide-version*
            #:*tmp-file-store*
            
            #:wookie-error
