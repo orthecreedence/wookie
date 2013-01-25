@@ -13,11 +13,8 @@ Wookie borrows ideas from the excellent Hunchentoot. Originally, the goal was to
 port Hunchentoot to async, but Wookie took a divergent turn and is now its own
 project.
 <br><br><br><br><br>
-__Wookie requires git versions of:__
-
- - [cl-libevent2](/orthecreedence/cl-libevent2)
- - [cl-async](/orthecreedence/cl-async)
- - [http-parse](/orthecreedence/http-parse)
+__Wookie requires git versions of:__ [cl-libevent2](/orthecreedence/cl-libevent2),
+[cl-async](/orthecreedence/cl-async), [http-parse](/orthecreedence/http-parse) 
 
 For the brave
 -------------
