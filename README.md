@@ -12,11 +12,7 @@ of existing on the same planet as us. This project is dedicated to him.
 Wookie borrows ideas from the excellent Hunchentoot. Originally, the goal was to
 port Hunchentoot to async, but Wookie took a divergent turn and is now its own
 project.
-
-
-
-
-
+<br><br><br><br><br>
 Wookie requires git versions of:
 
  - [cl-libevent2](/orthecreedence/cl-libevent2)
