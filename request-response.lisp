@@ -93,17 +93,25 @@
       ;; write all the headers
       (map-plist headers
                  (lambda (header value)
-                   (write-http-line "~a: ~a" (camel-case header) value)))
+                   (let ((header-name (camel-case header)))
+                     (if (listp value)
+                         (dolist (val value)
+                           (write-http-line "~a: ~a" header-name val))
+                         (write-http-line "~a: ~a" header-name value)))))
       ;; finalize headers (closing \r\n)
       (write-http-line "")
       ;; send body if specified
       (when body
         (as:write-socket-data socket body-enc)))
     ;; if we speficied we want to close, do it now
-    (when close
-      (as:write-socket-data socket nil
-        :write-cb (lambda (socket)
-                    (as:close-socket socket))))
+    (if close
+        ;; close the socket once it's done writing
+        (as:write-socket-data socket nil
+          :write-cb (lambda (socket)
+                      (as:close-socket socket)))
+        ;; we sent a response, but aren't closing. reset the parser so that if
+        ;; another request comes in on the same socket, WE'LL BE READY!!!!11one
+        (setup-parser socket))
     (setf (response-finished-p response) t)))
 
 (defun start-response (response &key (status 200) headers)
@@ -130,7 +138,8 @@
   (force-output chunked-stream)
   (let* ((async-stream (chunga:chunked-stream-stream chunked-stream))
          (socket (as:stream-socket async-stream)))
-    (as:write-socket-data socket #(48 13 10 13 10)
+    ;; write empty chunk
+    (as:write-socket-data socket #(48 13 10 13 10)  ; "0\r\n\r\n"
       :write-cb (lambda (socket)
                   (when close
                     (as:close-socket socket))))))
