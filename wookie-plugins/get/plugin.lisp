@@ -8,8 +8,7 @@
   (let ((hash-get-vars (make-hash-table :test #'equal)))
     (map-querystring (puri:uri-query (request-uri request))
       (lambda (key val)
-        (when key
-          (setf (gethash key hash-get-vars) val))))
+        (setf (gethash key hash-get-vars) val)))
     (wookie-plugin:set-plugin-request-data :get request hash-get-vars)))
 
 (defplugfun get-var (request key)
