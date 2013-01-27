@@ -1,6 +1,6 @@
-(defpackage :wookie-core-cookie-vars
+(defpackage :wookie-plugin-core-cookie
   (:use :cl :wookie :wookie-util :wookie-plugin))
-(in-package :wookie-core-cookie-vars)
+(in-package :wookie-plugin-core-cookie)
 
 (defparameter *scanner-cookie-split*
   (cl-ppcre:create-scanner ";[ \\s\\t]+")
@@ -42,11 +42,5 @@
 (defun unload-cookie-vars ()
   (wookie:remove-hook :parsed-headers :cookie-core-parse-vars))
 
-(wookie-plugin:register-plugin
-  :cookie
-  '(:name "Wookie core Cookie plugin"
-    :author "Andrew Lyon"
-    :version "0.1.0")
-  'init-cookie-vars
-  'unload-cookie-vars)
+(wookie-plugin:register-plugin :cookie 'init-cookie-vars 'unload-cookie-vars)
 

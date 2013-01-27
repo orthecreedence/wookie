@@ -6,6 +6,7 @@
            #:querystringp
            #:map-querystring
            #:body-to-string
+           #:getf-reverse
            #:generate-tmp-file-name
            #:lookup-status-text))
 (in-package :wookie-util)
@@ -16,7 +17,10 @@
 (defun wlog (level format-string &rest format-args)
   "Wookie's logging function. simple for now, just sends to STDOUT."
   (when (<= level *log-level*)
-    (apply #'format (append (list t format-string) format-args))))
+    (let ((output (if *log-output*
+                      *log-output*
+                      t)))
+      (apply #'format (append (list output format-string) format-args)))))
   
 (defun map-plist (plist fn)
   "Iterate over a plist"
@@ -82,11 +86,20 @@
       (t ()
         (babel:octets-to-string body-bytes :encoding :iso-8859-1))))) 
 
+(defun getf-reverse (plist key)
+  "Like getf, except the VALUE comes before the KEY:
+     '(:value1 :key1 :value2 :key2)
+   Allows reverse lookups in plists without duplicating structures."
+  (dotimes (i (length plist))
+    (when (eq key (cadr plist))
+      (return-from getf-reverse (car plist)))
+    (setf plist (cddr plist))))
+
 (defun generate-tmp-file-name ()
   "Generate the a full path/filename for a temporary file that does not exist
    already in the tmp directory."
   (format nil "~atmp~a" (namestring *tmp-file-store*) (incf *tmp-file-counter*)))
-   
+
 (defun lookup-status-text (status-code)
   "Get the HTTP standard text that goes along with a status code."
   (case status-code

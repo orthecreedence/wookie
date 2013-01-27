@@ -1,6 +1,6 @@
-(defpackage :wookie-core-multipart-vars
+(defpackage :wookie-plugin-core-multipart
   (:use :cl :wookie :wookie-util :wookie-plugin))
-(in-package :wookie-core-multipart-vars)
+(in-package :wookie-plugin-core-multipart)
 
 (defun check-if-multipart (request)
   "Check if this request contains multipart data, and mark the plugin data as
@@ -113,11 +113,5 @@
   (wookie:remove-hook :body-chunk :multipart-core-parse-multipart)
   (wookie:remove-hook :response-started :multipart-core-remove-tmp))
 
-(wookie-plugin:register-plugin
-  :multipart
-  '(:name "Wookie core multipart plugin"
-    :author "Andrew Lyon"
-    :version "0.1.0")
-  'init-multipart-vars
-  'unload-multipart-vars)
+(wookie-plugin:register-plugin :multipart 'init-multipart-vars 'unload-multipart-vars)
 
