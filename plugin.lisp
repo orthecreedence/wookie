@@ -107,16 +107,22 @@
     (when (hash-table-p data)
       (gethash plugin-name data))))
 
-(defun resolve-dependencies ()
-  (let ((systems nil))
-    (dolist (enabled *enabled-plugins*)
-      (let ((asdf-system (getf *available-plugins* enabled)))
-        (when asdf-system
-          (wlog +log-debug+ "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
-          (push asdf-system systems))))
-    (let* ((*log-output* *standard-output*)
-           (*standard-output* (make-broadcast-stream)))
-      (ql:quickload systems :verbose nil :explain nil))))
+(defun resolve-dependencies (&key ignore-loading-errors)
+  "Load the ASDF plugins and resolve all of their dependencies. Kind of an
+   unfortunate name. Will probably be renamed."
+  (dolist (enabled *enabled-plugins*)
+    (let ((asdf-system (getf *available-plugins* enabled)))
+      (when asdf-system
+        (wlog +log-debug+ "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
+        (let* ((*log-output* *standard-output*)
+               (*standard-output* (make-broadcast-stream)))
+          (if ignore-loading-errors
+              (handler-case (ql:quickload asdf-system)
+                (quicklisp-client::system-not-found (e)
+                  (wlog +log-warning+ "(plugin) Failed to load dependency for ~s (~s)~%"
+                                      asdf-system
+                                      (quicklisp-client::system-not-found-name e))))
+              (ql:quickload asdf-system)))))))
   
 (defun match-plugin-asdf (plugin-name asdf-system)
   "Match a plugin and an ASDF system toeach other."
@@ -129,7 +135,7 @@
   (cl-ppcre:create-scanner "[/\\\\]([a-z-_]+)[/\\\\]?$" :case-insensitive-mode t)
   "Basically unix's basename in a regex.")
 
-(defun load-plugins ()
+(defun load-plugins (&key ignore-loading-errors)
   "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
    There is also the option to compile the plugins (default nil)."
   (wlog +log-debug+ "(plugin) Load plugins ~s~%" *plugin-folders*)
@@ -156,7 +162,7 @@
                   (let ((*current-plugin-name* plugin-name))
                     (load plugin-file)))
                 (wlog +log-notice+ "(plugin) Missing ~a~%" plugin-file)))))))
-  (resolve-dependencies))
+  (resolve-dependencies :ignore-loading-errors ignore-loading-errors))
 
 (defmacro defplugin (&rest asdf-defsystem-args)
   "Simple wrapper around asdf:defsystem that maps a plugin-name (hopefully in
