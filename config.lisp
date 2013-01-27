@@ -36,7 +36,7 @@
   "Boolean specifying whether or not to hide the Wookie version in the Server
    header.")
 
-(defvar *enabled-plugins* '(:get); :post :multipart :cookie
+(defvar *enabled-plugins* '(:get :post :multipart :cookie)
   "A list of (keyword) names of enabled plugins.")
 
 (defvar *tmp-file-store* (asdf:system-relative-pathname :wookie #p"upload-tmp/")

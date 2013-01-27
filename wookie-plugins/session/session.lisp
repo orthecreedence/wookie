@@ -4,7 +4,7 @@
 
 (defun load-session-data (request response)
   (declare (ignore response))
-  (wookie-plugin:set-plugin-request-data :session request "omg")) 
+  (wookie-plugin:set-plugin-request-data :session request "build me!")) 
 
 (defun init-session ()
   (wookie:add-hook :pre-route 'load-session-data :session-main-hook))
