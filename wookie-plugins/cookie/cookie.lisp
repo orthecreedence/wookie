@@ -24,16 +24,35 @@
   (let ((hash-cookie-vars (wookie-plugin:get-plugin-request-data :cookie request)))
     (gethash key hash-cookie-vars)))
 
-(defplugfun set-cookie (response key val &key expires)
+(defplugfun set-cookie (response key val &key expires max-age path domain http-only secure)
   "Update the headers for a response to set a cookie."
   (when (stringp (getf (response-headers response) :set-cookie))
     (setf (getf (response-headers response) :set-cookie)
           (list (getf (response-headers response) :set-cookie))))
-  (let* ((header (concatenate 'string key "=" val))
-         (header (if expires
-                     (let ((date ""))
-                       (concatenate 'string header "; Expires=" date))
-                     header)))
+  (let* ((attributes (list :expires expires
+                           :max-age max-age
+                           :path path
+                           :domain domain
+                           :http-only http-only
+                           :secure secure))
+         (attributes (map-plist attributes
+                                (lambda (k v)
+                                  (when v
+                                    (let ((val (if (or (eq k :http-only)
+                                                       (eq k :secure))
+                                                   ""
+                                                   (concatenate 'string "="
+                                                                (if (stringp v)
+                                                                    v
+                                                                    (write-to-string v))))))
+                                    (concatenate 'string
+                                                 (camel-case k) val))))))
+         (header (concatenate 'string key "=" val))
+         (header (reduce (lambda (a b)
+                           (unless (string= b "")
+                             (concatenate 'string a "; " b)))
+                         attributes
+                         :initial-value header)))
     (push header (getf (response-headers response) :set-cookie))))
 
 (defun init-cookie-vars ()

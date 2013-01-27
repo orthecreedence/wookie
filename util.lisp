@@ -24,13 +24,16 @@
   
 (defun map-plist (plist fn)
   "Iterate over a plist"
-  (dotimes (i (/ (length plist) 2))
-    (let (header value)
-      (setf header (car plist)
-            plist (cdr plist)
-            value (car plist)
-            plist (cdr plist))
-      (funcall fn header value))))
+  (let ((result nil))
+    (dotimes (i (/ (length plist) 2))
+      (let (header value)
+        (setf header (car plist)
+              plist (cdr plist)
+              value (car plist)
+              plist (cdr plist))
+        (let ((res (funcall fn header value)))
+          (when res (push res result)))))
+    (reverse result)))
 
 (defun camel-case (keyword)
   "Camel case anything that can be converted to a string (string, keyword,
