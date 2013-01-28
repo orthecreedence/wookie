@@ -19,8 +19,7 @@
   "Grabs a path's basename.")
 
 (defun get-mime (file)
-  (let* ((extension (cl-ppcre:regex-replace *scanner-get-extension*
-                                            file "\\1"))
+  (let* ((extension (cl-ppcre:regex-replace *scanner-get-extension* file "\\1"))
          (ext-sym (intern (string-upcase extension)
                           :wookie-plugin-core-directory-router)))
     (case ext-sym
