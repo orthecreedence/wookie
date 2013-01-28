@@ -29,6 +29,9 @@
            #:add-hook
            #:remove-hook
 
+           #:response-error
+           #:response-error-response
+           #:response-already-sent
            #:request
            #:request-socket
            #:request-method
