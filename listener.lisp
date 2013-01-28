@@ -74,15 +74,35 @@
                  (return-from dispatch-route))
                (setf route-dispatched t)
                (run-hooks :pre-route request response)
-               (if route
-                   (let ((route-fn (getf route :curried-route)))
-                     (wlog +log-debug+ "(route) ~a: ~s~%" sock route)
-                     (funcall route-fn request response))
-                   (progn
-                     (wlog +log-notice+ "(route) Missing route: ~s~%" route)
-                     (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
-                                                  sock)
-                     (return-from dispatch-route)))
+               (flet ((run-route (route)
+                        (if route
+                            (let ((route-fn (getf route :curried-route)))
+                              (wlog +log-debug+ "(route) Dispatch ~a: ~s~%" sock route)
+                              (funcall route-fn request response))
+                            (progn
+                              (wlog +log-notice+ "(route) Missing route: ~s~%" route)
+                              (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
+                                                           sock)
+                              (return-from dispatch-route)))))
+                 ;; load our route, but if we encounter a use-next-route condition,
+                 ;; add the route to the exclude list and load the next route with
+                 ;; the same matching criteria as before
+                 (let ((route-exclude nil))
+                   (loop
+                     (handler-case
+                       ;; run our route and break the loop if successful
+                       (progn
+                         (run-route route)
+                         (return))
+                       ;; caught a use-next-route condition, push the current
+                       ;; route onto the exclude list, load the next route, and
+                       ;; try again
+                       (use-next-route ()
+                         (wlog +log-debug+ "(route) Next route~%")
+                         (push route route-exclude)
+                         (setf route (find-route (http-parse:http-method http)
+                                                 route-path
+                                                 :exclude route-exclude)))))))
                (run-hooks :post-route request response))
              (header-callback (headers)
                ;; if we got the headers, it means we can find the route we're

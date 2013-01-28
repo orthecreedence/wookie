@@ -147,7 +147,7 @@
 (defun finish-response (chunked-stream &key close)
   "Given the stream passed back from start-response, finalize the response (send
    empty chunk) and close the connection, if specified."
-  (wlog +log-debug+ "(response) Finish response ~a (close ~a)~%" response close)
+  (wlog +log-debug+ "(response) Finish response (close ~a)~%" close)
   (force-output chunked-stream)
   (let* ((async-stream (chunga:chunked-stream-stream chunked-stream))
          (socket (as:stream-socket async-stream)))
@@ -155,7 +155,7 @@
     (as:write-socket-data socket #(48 13 10 13 10)  ; "0\r\n\r\n"
       :write-cb (lambda (socket)
                   (when close
-                    (wlog +log-debug+ "(response) Close socket ~a~%" response)
+                    (wlog +log-debug+ "(response) Finish, close socket~%")
                     (as:close-socket socket))))))
 
 (defgeneric add-request-error-handler (request error-type handler)

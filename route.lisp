@@ -1,5 +1,11 @@
 (in-package :wookie)
 
+(define-condition use-next-route () ()
+  (:documentation
+    "Signals to the routing system to load the next route after the one loaded.
+     can be used to set up route load chains based on criteria not sent directly
+     to find-route."))
+
 (define-condition route-error (wookie-error)
   ((resource :initarg :resource :reader route-error-resource :initform nil))
   (:report (lambda (c s) (format s "Routing error: ~s" (route-error-resource c))))
@@ -31,21 +37,35 @@
           :allow-chunking allow-chunking
           :resource-str resource)))
 
-(defun find-route (method resource)
+(defun next-route ()
+  "Lets the routing system know to re-route the current request, excluding this
+   route from the available options."
+  (error 'use-next-route))
+
+(defun find-route (method resource &key exclude)
   "Given a method and a resource, find the best matching route."
   (loop for route across *routes* do
-    (when (eq (getf route :method) method)
-      (multiple-value-bind (matchedp matches)
-          (if (getf route :regex)
-              (cl-ppcre:scan-to-strings (getf route :resource) resource)
-              (string= (getf route :resource) resource))
-        (when matchedp
-          (let* ((fn (getf route :fn))
-                 (curried-fn (lambda (request response)
-                               (apply fn (append (list request response)
-                                                 (coerce matches 'list))))))
-            (setf (getf route :curried-route) curried-fn)
-            (return-from find-route route)))))))
+    ;; don't load excluded routes
+    (unless (find-if (lambda (ex)
+                       (eq (getf ex :fn) (getf route :fn)))
+                     exclude)
+      (when (eq (getf route :method) method)
+        (multiple-value-bind (matchedp matches)
+            (if (getf route :regex)
+                (cl-ppcre:scan-to-strings (getf route :resource) resource)
+                (string= (getf route :resource) resource))
+          (when matchedp
+            (let* ((fn (getf route :fn))
+                   (curried-fn (lambda (request response)
+                                 (apply fn (append (list request response)
+                                                   (coerce matches 'list))))))
+              (setf (getf route :curried-route) curried-fn)
+              (return-from find-route route))))))))
+
+(defun add-route (new-route)
+  "Add a new route to the table."
+  (vector-push-extend new-route *routes*)
+  *routes*)
 
 (defun upsert-route (new-route)
   "Add a new route to the table. If a route already exists with the same method
@@ -75,10 +95,19 @@
                                    (string= (getf route :resource-str) resource-str)))
                             *routes*)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk)
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk replace)
                     (bind-request bind-response &optional bind-args)
                     &body body)
-  "Defines a wookie route and pushes it into the route list."
+  "Defines a wookie route and pushes it into the route list.
+
+     :regex specifies whether resource is a regex or not
+     :chunk specifies if the route can handle chunked content
+     :replace tells the routing system to upsert this resource/method set
+       (instead of just blindly adding it to the end of the list like default)
+
+   bind-request/bind-response are the variable names that the request/response
+   values are bound to, and bind-args specifies that variable that regex group
+   matches get sent to (a list)."
   (let* ((new-route (gensym))
          (ignore-bind-args nil)
          (bind-args (if bind-args
@@ -95,5 +124,5 @@
                                    :regex ,regex
                                    :case-sensitive ,case-sensitive
                                    :allow-chunking ,chunk)))
-       (upsert-route ,new-route))))
+       (add-route ,new-route))))
 

@@ -22,6 +22,7 @@
            #:route-not-found
            #:clear-routes
            #:clear-route
+           #:next-route
            #:defroute
 
            #:clear-hooks
