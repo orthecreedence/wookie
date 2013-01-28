@@ -102,7 +102,11 @@
   "Send a directory listing."
   (declare (ignore request))
   (let ((files (directory (concatenate 'string local-path "/" file-path "/*.*")))
-        (stream (start-response response :headers '(:content-type "text/html"))))
+        (stream (start-response response :headers '(:content-type "text/html")))
+        (filtered-filepath (if (or (string= file-path "")
+                                   (eq (aref file-path 0) #\/))
+                               file-path
+                               (concatenate 'string "/" file-path))))
     (flet ((write-line (string)
              (write-sequence (babel:string-to-octets (concatenate 'string string #(#\return #\newline))
                                                      :encoding :utf-8)
@@ -113,8 +117,9 @@
       (write-line (format nil "<h1>Index of ~a/</h1>" file-path))
       (write-line "<ul>")
       (unless (string= (namestring file-path) "")
-        (write-line (format nil "<li><a href=\"/~a/..\">..</a></li>"
-                            file-path)))
+        (write-line (format nil "<li><a href=\"~a~a/..\">..</a></li>"
+                            route-path
+                            filtered-filepath)))
       (dolist (file files)
         (let* ((filename (namestring file))
                (basename (cl-ppcre:regex-replace *scanner-basename*
@@ -122,10 +127,7 @@
                                                  "\\1")))
           (write-line (format nil "<li><a href=\"~a~a/~a\">~a</a></li>"
                               route-path
-                              (if (or (string= file-path "")
-                                      (eq (aref file-path 0) #\/))
-                                  file-path
-                                  (concatenate 'string "/" file-path))
+                              filtered-filepath
                               basename
                               basename))))
       (write-line "</ul>")
