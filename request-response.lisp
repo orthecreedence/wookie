@@ -25,7 +25,8 @@
 (defclass response ()
   ((headers :accessor response-headers :initarg :headers :initform nil)
    (request :accessor response-request :initarg :request :initform nil)
-   (finishedp :accessor response-finished-p :initarg :finishedp :initform nil))
+   (finishedp :accessor response-finished-p :initarg :finishedp :initform nil)
+   (chunki-stream :accessor response-chunk-stream :initarg :chunk-stream :initform nil))
   (:documentation "A class holding information about a response to the client."))
 
 (defmacro with-chunking (request (chunk-data last-chunk-p) &body body)
@@ -63,12 +64,14 @@
                                                 (asdf:find-system :wookie))))))
   headers)
 
-(defun send-response (response &key (status 200) headers body close)
+(defun send-response (response &key (status 200) headers body (close nil close-specified-p))
   "Send a response to an incoming request. Takes :status, :headers, and :body
    keyword arguments, which together form an entire response.
 
    If :close is T, close the client connection after the response has been
-   sent fully."
+   sent fully. However, send-response does its best to read the request headers
+   and determine whether or not the connection should be closed. Unless you have
+   a reason to specify :close, it may be best to leave it blank."
   (wlog +log-debug+ "(response) Send response ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)~%"
                     response status close
                     headers (length body))
@@ -110,6 +113,21 @@
       ;; send body if specified
       (when body
         (as:write-socket-data socket body-enc)))
+
+    ;; auto-select the best close method, but only if close wasn't specified
+    (unless close-specified-p
+      (let ((request-headers (request-headers request)))
+        (cond
+          ;; we're chunking, so don't close yet
+          ((string= (getf request-headers :transfer-encoding) "chunked")
+           (setf close nil))
+          ;; we got Connection: keep-alive. so, keep-alive...
+          ((string= (getf request-headers :connection) "keep-alive")
+           (setf close nil))
+          ;; we got a Connection: close and we're not chunking. close.
+          ((string= (getf request-headers :connection) "close")
+           (setf close t)))))
+
     ;; if we speficied we want to close, do it now
     (if close
         ;; close the socket once it's done writing
@@ -122,6 +140,8 @@
         (progn
           (wlog +log-debug+ "(response) Reset parser: ~a~%" response)
           (setup-parser socket)))
+
+    ;; mark the response as having been sent
     (setf (response-finished-p response) t)))
 
 (defun start-response (response &key (status 200) headers)
@@ -137,20 +157,35 @@
   (send-response response
                  :status status
                  :headers (append headers
-                                  (list :transfer-encoding "chunked")))
+                                  (list :transfer-encoding "chunked"))
+                 :close nil)
   (let* ((request (response-request response))
          (async-stream (make-instance 'as:async-io-stream :socket (request-socket request)))
          (chunked-stream (chunga:make-chunked-stream async-stream)))
-    (setf (chunga:chunked-stream-output-chunking-p chunked-stream) t)
+    (setf (chunga:chunked-stream-output-chunking-p chunked-stream) t
+          (response-chunk-stream response) chunked-stream)
     chunked-stream))
 
-(defun finish-response (chunked-stream &key close)
+(defun finish-response (response &key (close nil close-specified-p))
   "Given the stream passed back from start-response, finalize the response (send
    empty chunk) and close the connection, if specified."
   (wlog +log-debug+ "(response) Finish response (close ~a)~%" close)
-  (force-output chunked-stream)
-  (let* ((async-stream (chunga:chunked-stream-stream chunked-stream))
-         (socket (as:stream-socket async-stream)))
+  (let* ((chunked-stream (response-chunk-stream response))
+         (request (response-request response))
+         (socket (request-socket request)))
+    ;; make sure the stream writes its final data
+    (force-output chunked-stream)
+    ;; auto-select the best close method, but only if close wasn't specified
+    (unless close-specified-p
+      (let ((request-headers (request-headers request)))
+        (cond
+          ;; we got Connection: keep-alive. so, keep-alive...
+          ((string= (getf request-headers :connection) "keep-alive")
+           (setf close nil))
+          ;; we got a Connection: close so let's oblige the client
+          ((string= (getf request-headers :connection) "close")
+           (setf close t)))))
+
     ;; write empty chunk
     (as:write-socket-data socket #(48 13 10 13 10)  ; "0\r\n\r\n"
       :write-cb (lambda (socket)
