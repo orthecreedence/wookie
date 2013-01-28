@@ -17,7 +17,7 @@
 (defun directory-listing (file-path route-path local-path request response)
   "Send a directory listing."
   (declare (ignore request))
-  (let ((files (directory (concatenate 'string local-path file-path "/*.*")))
+  (let ((files (directory (concatenate 'string local-path "/" file-path "/*.*")))
         (stream (start-response response :headers '(:content-type "text/html"))))
     (flet ((write-line (string)
              (write-sequence (babel:string-to-octets (concatenate 'string string #(#\return #\newline))
@@ -51,7 +51,7 @@
 
 (defun send-file (file-path route-path local-path request response)
   (declare (ignore request route-path))
-  (let ((path (concatenate 'string local-path file-path))
+  (let ((path (concatenate 'string local-path "/" file-path))
         (buffer (make-array 1024 :element-type '(unsigned-byte 8)))
         (stream (start-response response :headers '(:content-type "text/plain"))))
     (with-open-file (fstream path :element-type '(unsigned-byte 8))
@@ -64,7 +64,6 @@
 (defplugfun def-directory-route (route-path local-path)
   "Define a route that handles directory listings and file serving. If a file or
    directory doesn't exist, run the next route."
-  (format t "HEREHERE~%")
   (flet ((remove-trailing-slashes (path)
            (cl-ppcre:regex-replace *scanner-strip-trailing-slash* path "")))
     (let* ((route-path (namestring route-path))
@@ -72,11 +71,14 @@
            (resource (concatenate 'string route-path "/(.*)$")))
       (clear-route :get resource)
       (defroute (:get resource) (req res args)
-        (let ((file-path (remove-trailing-slashes (car args))))
+        (let* ((file-path (remove-trailing-slashes (car args)))
+               (local-file (concatenate 'string
+                                        (namestring local-path)
+                                        "/" file-path)))
           (cond
-            ((cl-fad:directory-exists-p file-path)
+            ((cl-fad:directory-exists-p local-file)
              (directory-listing file-path route-path local-path req res))
-            ((cl-fad:file-exists-p file-path)
+            ((cl-fad:file-exists-p local-file)
              (send-file file-path route-path local-path req res))
             (t 
              (next-route))))))))
