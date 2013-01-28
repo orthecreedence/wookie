@@ -8,6 +8,7 @@
 
 (defun main-event-handler (event socket)
   "Handle socket events/conditions that crop up during processing."
+  (wlog +log-notice+ "(event) Event ~a~%" event)
   (let* ((socket-data (as:socket-data socket))
          (request (getf socket-data :request))
          (response (getf socket-data :response))

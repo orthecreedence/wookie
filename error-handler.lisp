@@ -36,7 +36,7 @@
    
    Returns a list of the classes in the given error-table, ordered by their
    relative specificity."
-  (wlog +log-debug+ "(error) Add error handler ~s~%" error-type)
+  (wlog +log-debug+ "(error-handler) Add error handler ~s~%" error-type)
   ;; only bother recalculating the precedence list if we have a new key in the
   ;; hash...
   (unless (prog1 (nth-value 1 (gethash error-type error-table))
@@ -66,7 +66,6 @@
 (defun dispatch-event (event error-table error-table-precedence &rest handler-args)
   "Run the most appropriate error handler for the given event type. Returns true
    on a successful dispatch."
-  (wlog +log-notice+ "(error) Event ~s (args ~s)~%" event handler-args)
   (let ((event-type (type-of event)))
     (dolist (error-type error-table-precedence)
       ;; our event object is a match for one of the conditions we're handling!
