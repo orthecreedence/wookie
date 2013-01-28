@@ -13,18 +13,18 @@
          (request (getf socket-data :request))
          (response (getf socket-data :response))
          (handled nil))
-    ;; dispatch global errors
-    (setf handled (dispatch-event event
-                                  *wookie-error-handlers*
-                                  *wookie-error-handler-class-precedence*
-                                  event socket request response))
-
     ;; dispatch request errors
     (when (and request (request-error-handlers request))
       (setf handled (dispatch-event event
                                     (request-error-handlers request)
                                     (request-error-precedence request)
                                     event socket request response)))
+
+    ;; dispatch global errors
+    (setf handled (dispatch-event event
+                                  *wookie-error-handlers*
+                                  *wookie-error-handler-class-precedence*
+                                  event socket request response))
 
     ;; if the event wasn't handled, try some default handling here
     (unless handled
