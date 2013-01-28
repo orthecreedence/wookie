@@ -150,13 +150,19 @@
   "Define a route that handles directory listings and file serving. If a file or
    directory doesn't exist, run the next route."
   (flet ((remove-trailing-slashes (path)
-           (cl-ppcre:regex-replace *scanner-strip-trailing-slash* path "")))
+           (cl-ppcre:regex-replace *scanner-strip-trailing-slash* path ""))
+         (remove-route-path (path)
+           (let ((route-path-pos (search route-path path)))
+             (if route-path-pos
+                 (subseq path route-path-pos)
+                 path))))
     (let* ((route-path (namestring route-path))
            (route-path (remove-trailing-slashes route-path))
-           (resource (concatenate 'string route-path "/(.*)$")))
+           (resource (concatenate 'string route-path "(/?.*)$")))
       (clear-route :get resource)
       (defroute (:get resource) (req res args)
         (let* ((file-path (remove-trailing-slashes (car args)))
+               (file-path (remove-route-path file-path))
                (local-file (concatenate 'string
                                         (namestring local-path)
                                         "/" file-path)))
