@@ -57,7 +57,6 @@
    be fired."
   (zsort:quicksort classes
     (lambda (a b)
-      (format t "comparing ~s : ~s~%~s~%" a b (list (subtypep a b) (subtypep b a)))
       (cond ((subtypep a b)
              t)
             ((subtypep b a)

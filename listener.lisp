@@ -21,10 +21,11 @@
                                     event socket request response)))
 
     ;; dispatch global errors
-    (setf handled (dispatch-event event
-                                  *wookie-error-handlers*
-                                  *wookie-error-handler-class-precedence*
-                                  event socket request response))
+    (unless handled
+      (setf handled (dispatch-event event
+                                    *wookie-error-handlers*
+                                    *wookie-error-handler-class-precedence*
+                                    event socket request response)))
 
     ;; if the event wasn't handled, try some default handling here
     (unless handled
@@ -37,8 +38,13 @@
             (send-response response
                            :status 500
                            :body (format nil "There was an error processing your request: ~a" event))))
+        (as:tcp-eof ()
+          ;; simple EOF, not much we can do, and we don't want to kill the
+          ;; server for it...
+          nil)
         (t ()
-          (format t "(ev) ~a~%" event))))))
+          ;; unhandled. rethrow it.
+          (error event))))))
 
 (defun listener-event-handler (ev)
   "A wrapper around main-event-handler, useful for listeners to tie into."
@@ -163,7 +169,7 @@
 
 (defmethod start-server ((listener listener))
   ;; start the async server
-  (wlog +log-debug+ "(start) Starting Wookie~%")
+  (wlog +log-notice+ "(start) Starting Wookie~%")
   (as:tcp-server (listener-bind listener) (listener-port listener)
     'read-data
     'listener-event-handler
