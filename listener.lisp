@@ -8,11 +8,17 @@
 
 (defun main-event-handler (event socket)
   "Handle socket events/conditions that crop up during processing."
-  (wlog +log-notice+ "(event) Event ~a~%" event)
   (let* ((socket-data (as:socket-data socket))
          (request (getf socket-data :request))
          (response (getf socket-data :response))
          (handled nil))
+    ;; don't dispatch an EOF on a finished request/response (nobody cares)
+    (when (and response
+               (response-finished-p response)
+               (subtypep (type-of event) 'as:tcp-eof))
+      (return-from main-event-handler))
+    (wlog +log-notice+ "(event) Event ~a~%" event)
+
     ;; dispatch request errors
     (when (and request (request-error-handlers request))
       (setf handled (dispatch-event event
@@ -20,7 +26,7 @@
                                     (request-error-precedence request)
                                     event socket request response)))
 
-    ;; dispatch global errors
+    ;; dispatch global errors, unless request error handler worked its magic...
     (unless handled
       (setf handled (dispatch-event event
                                     *wookie-error-handlers*
