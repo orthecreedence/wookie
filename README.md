@@ -3,15 +3,16 @@ Wookie
 <img src="http://orthecreedence.github.com/wookie/wookie-smile_small.jpg"
      alt="Wookie accepts our servitude."
      align="left" />
-Wookie is an asynchronous HTTP server written in common lisp. It is not for
-public use, yet. It's named after my dog who is extremely tempermental, 
+Wookie is an asynchronous HTTP server written in common lisp. It is in beta at
+the moment, with many features you probably want unimplemented for now. Wookie
+is completely undocumented at the moment, although as its API solidifies this
+will be remedied. Wookie is named after my dog who is extremely tempermental, 
 image-conscious, and makes sounds like a wookie when you squeeze him. He views
 himself as royalty, and we are all forever in his debt for his invaluable gift
 of existing on the same planet as us. This project is dedicated to him.
 
-Wookie borrows ideas from the excellent Hunchentoot. Originally, the goal was to
-port Hunchentoot to async, but Wookie took a divergent turn and is now its own
-project.
+Originally, the goal was to port Hunchentoot to async, but Wookie took a
+divergent turn and is now its own project.
 
 Wookie requires git versions of: [cl-libevent2](/orthecreedence/cl-libevent2),
 [cl-async](/orthecreedence/cl-async), [http-parse](/orthecreedence/http-parse) 
@@ -26,6 +27,7 @@ For the brave
   (:use :cl :wookie-plugin-export))
 (in-package :wookie-test)
 
+(setf wookie:*log-level* wookie:+log-info+)  ; a good level between debug and warn
 (wookie:load-plugins)  ; loads GET, POST, multipart handlers (see wookie-plugins/)
 (wookie:clear-routes)
 
@@ -41,9 +43,6 @@ For the brave
       (wookie:start-server listener)))
   :catch-app-errors t)
 ```
-
-Wookie is barely even a prototype at this point. Follow the issues list for a
-TODO overview.
 
 License
 -------
