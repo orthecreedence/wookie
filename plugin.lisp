@@ -4,19 +4,7 @@
 (defpackage :wookie-plugin-export
   (:use :cl))
 
-(defpackage :wookie-plugin
-  (:use :cl :wookie-config :wookie-util :wookie)
-  (:export #:register-plugin
-           #:set-plugin-request-data
-           #:get-plugin-request-data
-           #:*plugin-folders*
-           #:*enabled-plugins*
-           #:load-plugins
-           #:unload-plugin
-           #:defplugin
-           #:defplugfun)
-  (:import-from :wookie))
-(in-package :wookie-plugin)
+(in-package :wookie)
 
 (defvar *plugins* (make-hash-table :test #'eq)
   "A hash table holding all registered Wookie plugins.")
@@ -90,7 +78,14 @@
     (setf *plugin-config* (make-hash-table :test #'eq)))
   (setf (gethash plugin-name *plugin-config*) config))
 
-(defun set-plugin-request-data (plugin-name request data)
+(defun plugin-request-data (plugin-name request)
+  "Retrieve the data stored into a request object for the plugin-name (keyword)
+   plugin. This function is setfable."
+  (let ((data (request-plugin-data request)))
+    (when (hash-table-p data)
+      (gethash plugin-name data))))
+
+(defun (setf plugin-request-data) (data plugin-name request)
   "When a plugin wants to store data available to the main app, it can do so by
    storing the data into the request's plugin data. This function allows this by
    taking the plugin-name (keyword), request object passed into the route, and
@@ -99,13 +94,6 @@
   (unless (hash-table-p (request-plugin-data request))
     (setf (request-plugin-data request) (make-hash-table :test #'eq)))
   (setf (gethash plugin-name (request-plugin-data request)) data))
-
-(defun get-plugin-request-data (plugin-name request)
-  "Retrieve the data stored into a request object for the plugin-name (keyword)
-   plugin."
-  (let ((data (request-plugin-data request)))
-    (when (hash-table-p data)
-      (gethash plugin-name data))))
 
 (defun resolve-dependencies (&key ignore-loading-errors)
   "Load the ASDF plugins and resolve all of their dependencies. Kind of an
@@ -169,9 +157,9 @@
    *current-plugin-name*) to the ASDF system the plugin defines."
   `(progn
      (asdf:defsystem ,@asdf-defsystem-args)
-     (wookie-plugin::match-plugin-asdf wookie-plugin::*current-plugin-name*
-                                       ,(intern (string-upcase (string (car asdf-defsystem-args)))
-                                                :keyword))))
+     (wookie::match-plugin-asdf wookie::*current-plugin-name*
+                                ,(intern (string-upcase (string (car asdf-defsystem-args)))
+                                         :keyword))))
 
 (defmacro defplugfun (name args &body body)
   "Define a plugin function that is auto-exported to the :wookie-plugin-export

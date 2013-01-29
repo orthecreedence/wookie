@@ -1,4 +1,4 @@
-(wookie-plugin:defplugin wookie-plugin-core-get
+(defplugin wookie-plugin-core-get
   :author "Andrew Danger Lyon <orthecreedence@gmail.com>"
   :license "MIT"
   :version "0.2.1"

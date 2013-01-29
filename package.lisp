@@ -50,7 +50,16 @@
            #:finish-response
            #:add-request-error-handler
 
+           #:*enabled-plugins*
+           #:*plugin-folders*
+           #:register-plugin
+           #:plugin-config
+           #:plugin-request-data
            #:load-plugins
+           #:unload-plugin
+           #:defplugin
+           #:defplugfun
+           
 
            #:listener
            #:listener-bind

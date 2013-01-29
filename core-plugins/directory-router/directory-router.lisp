@@ -1,5 +1,5 @@
 (defpackage :wookie-plugin-core-directory-router
-  (:use :cl :wookie :wookie-util :wookie-plugin))
+  (:use :cl :wookie-util :wookie))
 (in-package :wookie-plugin-core-directory-router)
 
 (defparameter *scanner-get-extension*
@@ -179,5 +179,5 @@
 (defun init-directory-router ())
 (defun unload-directory-router ())
 
-(wookie-plugin:register-plugin :directory-router 'init-directory-router 'unload-directory-router)
+(register-plugin :directory-router 'init-directory-router 'unload-directory-router)
 

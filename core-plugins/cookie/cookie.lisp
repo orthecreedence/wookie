@@ -1,5 +1,5 @@
 (defpackage :wookie-plugin-core-cookie
-  (:use :cl :wookie :wookie-util :wookie-plugin))
+  (:use :cl :wookie-util :wookie))
 (in-package :wookie-plugin-core-cookie)
 
 (defparameter *scanner-cookie-split*
@@ -17,11 +17,11 @@
                (key (subseq cookie 0 search-eq))
                (val (subseq cookie (1+ search-eq))))
           (setf (gethash key hash-cookie-vars) val)))
-      (wookie-plugin:set-plugin-request-data :cookie request hash-cookie-vars))))
+      (setf (plugin-request-data :cookie request) hash-cookie-vars))))
 
 (defplugfun cookie-var (request key)
   "Get a value from the Cookie data by key."
-  (let ((hash-cookie-vars (wookie-plugin:get-plugin-request-data :cookie request)))
+  (let ((hash-cookie-vars (plugin-request-data :cookie request)))
     (gethash key hash-cookie-vars)))
 
 (defplugfun set-cookie (response key val &key expires max-age path domain http-only secure)
@@ -56,10 +56,10 @@
     (push header (getf (response-headers response) :set-cookie))))
 
 (defun init-cookie-vars ()
-  (wookie:add-hook :parsed-headers 'parse-cookie-vars :cookie-core-parse-vars))
+  (add-hook :parsed-headers 'parse-cookie-vars :cookie-core-parse-vars))
 
 (defun unload-cookie-vars ()
-  (wookie:remove-hook :parsed-headers :cookie-core-parse-vars))
+  (remove-hook :parsed-headers :cookie-core-parse-vars))
 
-(wookie-plugin:register-plugin :cookie 'init-cookie-vars 'unload-cookie-vars)
+(register-plugin :cookie 'init-cookie-vars 'unload-cookie-vars)
 

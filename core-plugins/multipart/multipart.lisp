@@ -1,5 +1,5 @@
 (defpackage :wookie-plugin-core-multipart
-  (:use :cl :wookie :wookie-util :wookie-plugin))
+  (:use :cl :wookie-util :wookie))
 (in-package :wookie-plugin-core-multipart)
 
 (defun setup-multipart-parse (request)
@@ -65,18 +65,16 @@
                                (save-form-data)))))
              (parser (http-parse:make-multipart-parser headers multi-cb)))
         (when parser
-          (wookie-plugin:set-plugin-request-data
-            :multipart
-            request
-            (list :hash-form hash-form-vars
-                  :hash-file hash-file-data
-                  :parser parser)))))))
+          (setf (plugin-request-data :multipart request)
+                (list :hash-form hash-form-vars
+                      :hash-file hash-file-data
+                      :parser parser)))))))
 
 (defun parse-multipart-vars (request chunk finishedp)
   "Grab multipart data from parsed URI querystring and set into a hash table
    stored with the request."
   (declare (ignore finishedp))
-  (let* ((plugin-data (wookie-plugin:get-plugin-request-data :multipart request))
+  (let* ((plugin-data (plugin-request-data :multipart request))
          (parser (getf plugin-data :parser)))
     ;; if we have a parser, feed the chunk data into it. our hashes will be
     ;; populated as the data is decoded
@@ -86,7 +84,7 @@
 (defun remove-tmp-files (response request status headers body)
   "Loop over all tmp files uploaded in a request and delete them."
   (declare (ignore response status headers body))
-  (let ((files (getf (wookie-plugin:get-plugin-request-data :multipart request)
+  (let ((files (getf (plugin-request-data :multipart request)
                      :hash-file)))
     (when files
       (loop for file-entry being the hash-values of files do
@@ -95,26 +93,26 @@
 
 (defplugfun form-var (request field-name)
   "Get a value from the multipart data by its field name (string)."
-  (let* ((plugin-data (wookie-plugin:get-plugin-request-data :multipart request))
+  (let* ((plugin-data (plugin-request-data :multipart request))
          (hash-form-vars (getf plugin-data :hash-form)))
     (gethash field-name hash-form-vars)))
 
 (defplugfun file-upload (request field-name)
   "Get a file entry from the request by the field name (string). The entry is a
    plist with the keys :filename, :tmp-file, and :mime-type."
-  (let* ((plugin-data (wookie-plugin:get-plugin-request-data :multipart request))
+  (let* ((plugin-data (plugin-request-data :multipart request))
          (hash-form-vars (getf plugin-data :hash-file)))
     (gethash field-name hash-form-vars)))
 
 (defun init-multipart-vars ()
-  (wookie:add-hook :parsed-headers 'setup-multipart-parse :multipart-core-check-multipart)
-  (wookie:add-hook :body-chunk 'parse-multipart-vars :multipart-core-parse-multipart)
-  (wookie:add-hook :response-started 'remove-tmp-files :multipart-core-remove-tmp))
+  (add-hook :parsed-headers 'setup-multipart-parse :multipart-core-check-multipart)
+  (add-hook :body-chunk 'parse-multipart-vars :multipart-core-parse-multipart)
+  (add-hook :response-started 'remove-tmp-files :multipart-core-remove-tmp))
 
 (defun unload-multipart-vars ()
-  (wookie:remove-hook :parsed-headers :multipart-core-plugin)
-  (wookie:remove-hook :body-chunk :multipart-core-parse-multipart)
-  (wookie:remove-hook :response-started :multipart-core-remove-tmp))
+  (remove-hook :parsed-headers :multipart-core-plugin)
+  (remove-hook :body-chunk :multipart-core-parse-multipart)
+  (remove-hook :response-started :multipart-core-remove-tmp))
 
-(wookie-plugin:register-plugin :multipart 'init-multipart-vars 'unload-multipart-vars)
+(register-plugin :multipart 'init-multipart-vars 'unload-multipart-vars)
 
