@@ -140,9 +140,9 @@
                          (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
                                                       sock)
                          (return-from header-callback))))
-                 ;; if we found a route, the route allows chunking, and we have
-                 ;; chunked data, call the route now so it can set up its chunk
-                 ;; handler before we start streaming the body chunks to it
+                 ;; if we found a route and the route allows chunking, call the
+                 ;; route now so it can set up its chunk handler before we start
+                 ;; streaming the body chunks to it
                  ;;
                  ;; NOTE that we don't *need* to test if the data is actually
                  ;; chunked for a chunk-enabled route to be able to receive the
