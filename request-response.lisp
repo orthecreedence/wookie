@@ -26,7 +26,7 @@
   ((headers :accessor response-headers :initarg :headers :initform nil)
    (request :accessor response-request :initarg :request :initform nil)
    (finishedp :accessor response-finished-p :initarg :finishedp :initform nil)
-   (chunki-stream :accessor response-chunk-stream :initarg :chunk-stream :initform nil))
+   (chunk-stream :accessor response-chunk-stream :initarg :chunk-stream :initform nil))
   (:documentation "A class holding information about a response to the client."))
 
 (defmacro with-chunking (request (chunk-data last-chunk-p) &body body)
