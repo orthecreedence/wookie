@@ -143,8 +143,13 @@
                  ;; if we found a route, the route allows chunking, and we have
                  ;; chunked data, call the route now so it can set up its chunk
                  ;; handler before we start streaming the body chunks to it
+                 ;;
+                 ;; NOTE that we don't *need* to test if the data is actually
+                 ;; chunked for a chunk-enabled route to be able to receive the
+                 ;; data. if a chunk-enabled route gets called for data that
+                 ;; isn't chunked, it will receive all the data for that request
+                 ;; as one big chunk.
                  (when (and found-route
-                            (string= (getf headers :transfer-encoding) "chunked")
                             (getf found-route :allow-chunking))
                    (dispatch-route))))
              (body-callback (chunk finishedp)
