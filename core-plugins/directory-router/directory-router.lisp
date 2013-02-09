@@ -100,7 +100,7 @@
 (defun directory-listing (file-path route-path local-path request response)
   "Send a directory listing."
   (declare (ignore request))
-  (let ((files (directory (concatenate 'string local-path "/" file-path "/*.*")))
+  (let ((files (cl-fad:list-directory (concatenate 'string local-path "/" file-path "/")))
         (stream (start-response response :headers '(:content-type "text/html")))
         (filtered-filepath (if (or (string= file-path "")
                                    (eq (aref file-path 0) #\/))
