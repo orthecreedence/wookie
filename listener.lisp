@@ -119,7 +119,7 @@
                (let* ((method (http-parse:http-method http))
                       (resource (http-parse:http-resource http))
                       (parsed-uri (puri:parse-uri resource))
-                      (path (puri:uri-path parsed-uri))
+                      (path (do-urlencode:urldecode (puri:uri-path parsed-uri) :lenientp t))
                       (host (getf headers :host))
                       (found-route (find-route method path :host host)))
                  (setf route-path path)
