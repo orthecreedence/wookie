@@ -139,7 +139,11 @@
        (add-route ,new-route))))
 
 (defmacro with-vhost (host &body body)
-  "Simple wrapper that makes all defroutes in the body bind to a specific vhost."
+  "Simple wrapper that makes all defroutes in the body bind to a specific vhost:
+
+     (with-vhost \"omg.com\"
+       (defroute ...)
+       (defroute ...))"
   `(let ((*default-vhost* ,host))
      ,@body))
 
