@@ -8,8 +8,6 @@
 
 (defvar *plugins* (make-hash-table :test #'eq)
   "A hash table holding all registered Wookie plugins.")
-(defvar *plugin-asdf* nil
-  "A list matching plugin (keyword) names to ASDF systems.")
 (defvar *plugin-config* nil
   "A hash table holding configuration values for all plugins.")
 (defvar *plugin-folders* (list "./wookie-plugins/"
@@ -95,22 +93,45 @@
     (setf (request-plugin-data request) (make-hash-table :test #'eq)))
   (setf (gethash plugin-name (request-plugin-data request)) data))
 
-(defun resolve-dependencies (&key ignore-loading-errors)
+(defun resolve-dependencies (&key ignore-loading-errors (use-quicklisp t))
   "Load the ASDF plugins and resolve all of their dependencies. Kind of an
    unfortunate name. Will probably be renamed."
-  (dolist (enabled *enabled-plugins*)
-    (let ((asdf-system (getf *available-plugins* enabled)))
-      (when asdf-system
-        (wlog +log-debug+ "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
-        (let* ((*log-output* *standard-output*)
-               (*standard-output* (make-broadcast-stream)))
-          (if ignore-loading-errors
-              (handler-case (ql:quickload asdf-system)
-                (quicklisp-client::system-not-found (e)
-                  (wlog +log-warning+ "(plugin) Failed to load dependency for ~s (~s)~%"
-                                      asdf-system
-                                      (quicklisp-client::system-not-found-name e))))
-              (ql:quickload asdf-system)))))))
+  (flet ((load-system (system)
+           ;; FUCK the system
+           (if use-quicklisp
+               (ql:quickload system)
+               (asdf:oos 'asdf:load-op system))))
+    ;; make asdf/quicklisp shutup when loading. we're logging all this junk
+    ;; newayz so nobody wants to see that shit
+    (let* ((*log-output* *standard-output*)
+           (*standard-output* (make-broadcast-stream)))
+      (if ignore-loading-errors
+          ;; since we're ignoring errors, we need to individually load each plugin
+          ;; so if there's an error we can keep loading the other plugins (and of
+          ;; course generate a warning).
+          (dolist (enabled *enabled-plugins*)
+            (let ((asdf-system (getf *available-plugins* enabled)))
+              (when asdf-system
+                (wlog +log-debug+ "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
+                (handler-case (load-system asdf-system)
+                  ((or quicklisp-client::system-not-found
+                       asdf::missing-component) (e)
+                    (wlog +log-warning+ "(plugin) Failed to load dependency for ~s (~s)~%"
+                                        asdf-system
+                                        (quicklisp-client::system-not-found-name e)))))))
+
+          ;; create an asdf system that houses all the enabled plugins as deps, then
+          ;; load it (a lot faster than individually loading each asdf system).
+          (let ((asdf-list (loop for plugin in *enabled-plugins*
+                                 collect (getf *available-plugins* plugin))))
+            (apply 'asdf::do-defsystem
+                   'wookie-plugin-load-system
+                   `(:author "The high king himself, Lord Wookie."
+                     :license "Unconditional servitude."
+                     :version "1.0.0"
+                     :description "An auto-generated ASDF system that helps make loading plugins fast."
+                     :depends-on ,asdf-list))
+            (load-system :wookie-plugin-load-system))))))
   
 (defun match-plugin-asdf (plugin-name asdf-system)
   "Match a plugin and an ASDF system toeach other."
@@ -123,7 +144,7 @@
   (cl-ppcre:create-scanner "[/\\\\]([a-z-_]+)[/\\\\]?$" :case-insensitive-mode t)
   "Basically unix's basename in a regex.")
 
-(defun load-plugins (&key ignore-loading-errors)
+(defun load-plugins (&key ignore-loading-errors (use-quicklisp t))
   "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
    There is also the option to compile the plugins (default nil)."
   (wlog +log-debug+ "(plugin) Load plugins ~s~%" *plugin-folders*)
@@ -150,7 +171,7 @@
                   (let ((*current-plugin-name* plugin-name))
                     (load plugin-file)))
                 (wlog +log-notice+ "(plugin) Missing ~a~%" plugin-file)))))))
-  (resolve-dependencies :ignore-loading-errors ignore-loading-errors))
+  (resolve-dependencies :ignore-loading-errors ignore-loading-errors :use-quicklisp use-quicklisp))
 
 (defmacro defplugin (&rest asdf-defsystem-args)
   "Simple wrapper around asdf:defsystem that maps a plugin-name (hopefully in
