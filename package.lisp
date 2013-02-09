@@ -24,6 +24,7 @@
            #:clear-route
            #:next-route
            #:defroute
+           #:with-vhost
 
            #:clear-hooks
            #:add-hook

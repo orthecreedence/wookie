@@ -102,7 +102,7 @@
                                    (string= (getf route :resource-str) resource-str)))
                             *routes*)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk replace (vhost *default-vhost*))
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk replace (vhost '*default-vhost*))
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list.
@@ -133,4 +133,9 @@
                                    :allow-chunking ,chunk
                                    :vhost ,vhost)))
        (add-route ,new-route))))
+
+(defmacro with-vhost (host &body body)
+  "Simple wrapper that makes all defroutes in the body bind to a specific vhost."
+  `(let ((*default-vhost* ,host))
+     ,@body))
 
