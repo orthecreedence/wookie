@@ -56,7 +56,11 @@
                      exclude)
       (when (and (eq (getf route :method) method)
                  (or (not (getf route :vhost))
-                     (equal (getf route :vhost) host)))
+                     ;; either exact match the host or match without portnum
+                     (or (equal (getf route :vhost) host)
+                         (when (stringp host)
+                           (equal (getf route :vhost)
+                                  (subseq host 0 (position #\: host)))))))
         (multiple-value-bind (matchedp matches)
             (if (getf route :regex)
                 (cl-ppcre:scan-to-strings (getf route :resource) resource)
