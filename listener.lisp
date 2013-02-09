@@ -120,7 +120,9 @@
                       (resource (http-parse:http-resource http))
                       (parsed-uri (puri:parse-uri resource))
                       (path (puri:uri-path parsed-uri))
-                      (found-route (find-route method path)))
+                      (host (getf headers :host))
+                      (host (when host (subseq host 0 (position #\: host))))
+                      (found-route (find-route method path :host host)))
                  (setf route-path path)
                  ;; save the parsed uri for plugins/later code
                  (setf (request-uri request) parsed-uri

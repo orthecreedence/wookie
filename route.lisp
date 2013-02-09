@@ -18,12 +18,16 @@
 (defvar *routes* (make-array 0 :adjustable t :fill-pointer t) 
   "Holds all the routes for the system.") 
 
+(defvar *default-vhost* nil
+  "Defines the default virtualhost that routes use (unless explicitely stated
+   otherwise). Nil means no vhost (respond to all requests).")
+
 (defun clear-routes ()
   "Clear out all routes."
   (wlog +log-debug+ "(route) Clearing routes~%")
   (setf *routes* (make-array 0 :adjustable t :fill-pointer t)))
 
-(defun make-route (method resource fn &key regex case-sensitive allow-chunking)
+(defun make-route (method resource fn &key regex case-sensitive allow-chunking vhost)
   "Simple wrapper to make a route object from a set of args."
   (let ((scanner (if regex
                      (cl-ppcre:create-scanner
@@ -35,21 +39,24 @@
           :fn fn
           :regex regex
           :allow-chunking allow-chunking
-          :resource-str resource)))
+          :resource-str resource
+          :vhost vhost)))
 
 (defun next-route ()
   "Lets the routing system know to re-route the current request, excluding this
    route from the available options."
   (error 'use-next-route))
 
-(defun find-route (method resource &key exclude)
+(defun find-route (method resource &key exclude host)
   "Given a method and a resource, find the best matching route."
   (loop for route across *routes* do
     ;; don't load excluded routes
     (unless (find-if (lambda (ex)
                        (eq (getf ex :fn) (getf route :fn)))
                      exclude)
-      (when (eq (getf route :method) method)
+      (when (and (eq (getf route :method) method)
+                 (or (not (getf route :vhost))
+                     (equal (getf route :vhost) host)))
         (multiple-value-bind (matchedp matches)
             (if (getf route :regex)
                 (cl-ppcre:scan-to-strings (getf route :resource) resource)
@@ -95,7 +102,7 @@
                                    (string= (getf route :resource-str) resource-str)))
                             *routes*)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk replace)
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk replace (vhost *default-vhost*))
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list.
@@ -123,6 +130,7 @@
                                      ,@body)
                                    :regex ,regex
                                    :case-sensitive ,case-sensitive
-                                   :allow-chunking ,chunk)))
+                                   :allow-chunking ,chunk
+                                   :vhost ,vhost)))
        (add-route ,new-route))))
 
