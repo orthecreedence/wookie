@@ -157,8 +157,7 @@
              (if route-path-pos
                  (subseq path route-path-pos)
                  path))))
-    (let* ((route-path (namestring route-path))
-           (route-path (remove-trailing-slashes route-path))
+    (let* ((route-path (remove-trailing-slashes route-path))
            (resource (concatenate 'string route-path "(/?.*)$")))
       (clear-route :get resource)
       (defroute (:get resource) (req res args)
