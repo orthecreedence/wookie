@@ -8,7 +8,7 @@
 
 (defun main-event-handler (event socket)
   "Handle socket events/conditions that crop up during processing."
-  (let* ((socket-data (as:socket-data socket))
+  (let* ((socket-data (when socket (as:socket-data socket)))
          (request (getf socket-data :request))
          (response (getf socket-data :response))
          (handled nil))
@@ -87,8 +87,9 @@
                               (funcall route-fn request response))
                             (progn
                               (wlog +log-notice+ "(route) Missing route: ~s~%" route)
-                              (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
-                                                           sock)
+                              (funcall 'main-event-handler (make-instance 'route-not-found
+                                                                          :resource route-path
+                                                                          :socket sock) sock)
                               (return-from dispatch-route)))))
                  ;; load our route, but if we encounter a use-next-route condition,
                  ;; add the route to the exclude list and load the next route with
