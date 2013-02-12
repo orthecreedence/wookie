@@ -42,6 +42,8 @@ Example(s)
   ;; serves files)
   (def-directory-route "/" "/srv/www/sarcastic-ass/assets")
 
+  ;; define a catch-all for this vhost (any page that's not found will return a
+  ;; 404 page.
   (wookie:defroute (:get ".+") (res res)
     (wookie:send-response res :status 404 :body "GREAT job, wow, you found a page that doesn't exist.")))
 
@@ -63,28 +65,17 @@ Example(s)
 ;; allow streaming file uploads
 (wookie:defroute (:post "/files" :chunk t) (req res)
   (let ((s3-uploader nil))
-  (wookie:with-chunking req (chunk finishedp)
-    ;; this body is called whenever a chunk comes in on the request. this allows
-    ;; your app to stream HTTP content somewhere else (like amazon S3 or
-    ;; something).
-    (unless s3-uploader
-      (setf s3-uploader (my-app:make-s3-uploader)))
-    (my-app:send-data-to-s3 s3-uploader chunk)
-    ;; was the last chunk sent?
-    (when finishedp
-      (my-app:finish-s3-upload s3-uploader)
-      (wookie:send-response res :body "File uploaded!")))))
-
-;; handle some errrrrrz
-(wookie:defroute (:get "/missing-file") (req res)
-  (wookie:add-request-error-handler req t
-    (lambda (event sock err-req err-res)
-      (wookie:send-response res :status 500 :body (format nil "Server error!!! LOL: ~a" event))))
-  (if (probe-file "missing-file")
-      ;; heyyyyy there it is
-      (wookie:send-response res :body "File found.")
-      ;; nope
-      (error "File not found")))
+    (wookie:with-chunking req (chunk finishedp)
+      ;; this body is called whenever a chunk comes in on the request. this allows
+      ;; your app to stream HTTP content somewhere else (like amazon S3 or
+      ;; something).
+      (unless s3-uploader
+        (setf s3-uploader (my-app:make-s3-uploader)))
+      (my-app:send-data-to-s3 s3-uploader chunk)
+      ;; was the last chunk sent?
+      (when finishedp
+        (my-app:finish-s3-upload s3-uploader)
+        (wookie:send-response res :body "File uploaded!")))))
 ```
 
 License
