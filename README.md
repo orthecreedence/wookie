@@ -28,6 +28,9 @@ Example(s)
   (:use :cl :wookie-plugin-export))
 (in-package :wookie-test)
 
+;; loads the core plugins.
+(wookie:load-plugins)
+
 ;; set up a vhost that contains some routes. vhosts should come before other
 ;; (non-vhost routes) or the more general routes will take precedence
 (wookie:with-vhost "sarcastic-ass.com"
@@ -76,6 +79,13 @@ Example(s)
       (when finishedp
         (my-app:finish-s3-upload s3-uploader)
         (wookie:send-response res :body "File uploaded!")))))
+
+;; start the server...
+(as:start-event-loop
+  (lambda ()
+    (let ((listener (make-instance 'wookie:listener :post 8090)))
+      (wookie:start-server listener)))
+  :catch-app-errors t)
 ```
 
 License
