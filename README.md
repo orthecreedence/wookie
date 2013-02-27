@@ -83,7 +83,7 @@ Example(s)
 ;; start the server...
 (as:start-event-loop
   (lambda ()
-    (let ((listener (make-instance 'wookie:listener :post 8090)))
+    (let ((listener (make-instance 'wookie:listener :port 8090)))
       (wookie:start-server listener)))
   :catch-app-errors t)
 ```
