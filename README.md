@@ -12,8 +12,8 @@ of existing on the same planet as us. This project is dedicated to him.
 Originally, the goal was to port Hunchentoot to async, but Wookie took a
 divergent turn and is now its own project.
 
-Wookie requires git versions of: [cl-libevent2](/orthecreedence/cl-libevent2),
-[cl-async](/orthecreedence/cl-async), [http-parse](/orthecreedence/http-parse) 
+Wookie requires git versions of: [cl-libevent2](https://github.com/orthecreedence/cl-libevent2),
+[cl-async](https://github.com/orthecreedence/cl-async), [http-parse](https://github.com/orthecreedence/http-parse) 
 <br><br><br><br>
 
 Documentation
