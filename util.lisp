@@ -16,7 +16,7 @@
 
 (defun wlog (level format-string &rest format-args)
   "Wookie's logging function. simple for now, just sends to STDOUT."
-  (when (<= level *log-level*)
+  (when (<= (getf +log-levels+ level) (getf +log-levels+ *log-level*))
     (let ((output (if *log-output*
                       *log-output*
                       t)))

@@ -23,7 +23,7 @@
    plugin-name argument must be a unique keyword, and init-fn is the
    initialization function called that loads the plugin (called only once, on
    register)."
-  (wlog +log-debug+ "(plugin) Register plugin ~s~%" plugin-name)
+  (wlog :debug "(plugin) Register plugin ~s~%" plugin-name)
   (let ((plugin-entry (list :name plugin-name
                             :init-function init-function
                             :unload-function unload-function)))
@@ -39,7 +39,7 @@
    
    Also unloads any current plugins that depend on this plugin. Does this
    recursively so all depencies are always resolved."
-  (wlog +log-debug+ "(plugin) Unload plugin ~s~%" plugin-name)
+  (wlog :debug "(plugin) Unload plugin ~s~%" plugin-name)
   ;; unload the plugin
   (let ((plugin (gethash plugin-name *plugins*)))
     (when plugin
@@ -59,7 +59,7 @@
                                    when (oddp i)
                                      collect (intern (string system) :keyword)))
              (to-unload (intersection plugin-deps plugin-systems)))
-        (wlog +log-debug+ "(plugin) Unload deps for ~s ~s~%" plugin-name to-unload)
+        (wlog :debug "(plugin) Unload deps for ~s ~s~%" plugin-name to-unload)
         (dolist (asdf to-unload)
           (let ((plugin-name (getf-reverse *available-plugins* asdf)))
             (unload-plugin plugin-name)))))))
@@ -88,7 +88,7 @@
    storing the data into the request's plugin data. This function allows this by
    taking the plugin-name (keyword), request object passed into the route, and
    the data to store."
-  (wlog +log-debug+ "(plugin) Set plugin data ~s: ~a~%" plugin-name data)
+  (wlog :debug "(plugin) Set plugin data ~s: ~a~%" plugin-name data)
   (unless (hash-table-p (request-plugin-data request))
     (setf (request-plugin-data request) (make-hash-table :test #'eq)))
   (setf (gethash plugin-name (request-plugin-data request)) data))
@@ -112,11 +112,11 @@
           (dolist (enabled *enabled-plugins*)
             (let ((asdf-system (getf *available-plugins* enabled)))
               (when asdf-system
-                (wlog +log-debug+ "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
+                (wlog :debug "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
                 (handler-case (load-system asdf-system)
                   ((or quicklisp-client::system-not-found
                        asdf::missing-component) (e)
-                    (wlog +log-warning+ "(plugin) Failed to load dependency for ~s (~s)~%"
+                    (wlog :warning "(plugin) Failed to load dependency for ~s (~s)~%"
                                         asdf-system
                                         (quicklisp-client::system-not-found-name e)))))))
 
@@ -147,7 +147,7 @@
 (defun load-plugins (&key ignore-loading-errors (use-quicklisp t))
   "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
    There is also the option to compile the plugins (default nil)."
-  (wlog +log-debug+ "(plugin) Load plugins ~s~%" *plugin-folders*)
+  (wlog :debug "(plugin) Load plugins ~s~%" *plugin-folders*)
   (unless *plugins*
     (setf *plugins* (make-hash-table :test #'eq)))
   ;; unload current plugins
@@ -167,10 +167,10 @@
           (let ((plugin-file (concatenate 'string dirstr "plugin.asd")))
             (if (cl-fad:file-exists-p plugin-file)
                 (progn
-                  (wlog +log-debug+ "(plugin) Load ~a~%" plugin-file)
+                  (wlog :debug "(plugin) Load ~a~%" plugin-file)
                   (let ((*current-plugin-name* plugin-name))
                     (load plugin-file)))
-                (wlog +log-notice+ "(plugin) Missing ~a~%" plugin-file)))))))
+                (wlog :notice "(plugin) Missing ~a~%" plugin-file)))))))
   (resolve-dependencies :ignore-loading-errors ignore-loading-errors :use-quicklisp use-quicklisp))
 
 (defmacro defplugin (&rest asdf-defsystem-args)

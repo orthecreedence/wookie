@@ -1,13 +1,6 @@
 (defpackage :wookie-config
   (:use :cl)
-  (:export #:+log-emerg+
-           #:+log-alert+
-           #:+log-crit+
-           #:+log-err+
-           #:+log-warning+
-           #:+log-notice+
-           #:+log-info+
-           #:+log-debug+
+  (:export #:+log-levels+
            #:*log-level*
            #:*log-output*
 
@@ -16,18 +9,17 @@
            #:*tmp-file-store*))
 (in-package :wookie-config)
 
-;; define our logging constants. follows syslog.
-(defconstant +log-emerg+ 0)
-(defconstant +log-alert+ 1)
-(defconstant +log-crit+ 2)
-(defconstant +log-err+ 3)
-(defconstant +log-warning+ 4)
-(defconstant +log-notice+ 5)
-(defconstant +log-info+ 6)
-(defconstant +log-debug+ 7)
+;; define our logging levels. follows syslog.
+(defparameter +log-levels+ '(:emerg 0
+                             :error 1
+                             :warning 2
+                             :notice 3
+                             :info 4
+                             :debug 5))
 
-(defvar *log-level* +log-warning+
-  "Wookie's log level. Default is +log-warning+.")
+(defvar *log-level* :warning
+  "Wookie's log level. Default is :warning. Acceptable values are
+   '(:debug :info :notice :warning :error :emerg)")
 
 (defvar *log-output* nil
   "Can hold a stream to send log messages to. If nil, sends to *standard-output*")

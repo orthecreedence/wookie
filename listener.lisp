@@ -17,7 +17,7 @@
                (response-finished-p response)
                (subtypep (type-of event) 'as:tcp-eof))
       (return-from main-event-handler))
-    (wlog +log-notice+ "(event) Event ~a~%" event)
+    (wlog :notice "(event) Event ~a~%" event)
 
     ;; dispatch request errors
     (when (and request (request-error-handlers request))
@@ -83,10 +83,10 @@
                (flet ((run-route (route)
                         (if route
                             (let ((route-fn (getf route :curried-route)))
-                              (wlog +log-debug+ "(route) Dispatch ~a: ~s~%" sock route)
+                              (wlog :debug "(route) Dispatch ~a: ~s~%" sock route)
                               (funcall route-fn request response))
                             (progn
-                              (wlog +log-notice+ "(route) Missing route: ~s~%" route)
+                              (wlog :notice "(route) Missing route: ~s~%" route)
                               (funcall 'main-event-handler (make-instance 'route-not-found
                                                                           :resource route-path
                                                                           :socket sock) sock)
@@ -105,7 +105,7 @@
                        ;; route onto the exclude list, load the next route, and
                        ;; try again
                        (use-next-route ()
-                         (wlog +log-debug+ "(route) Next route~%")
+                         (wlog :debug "(route) Next route~%")
                          (push route route-exclude)
                          (setf route (find-route (http-parse:http-method http)
                                                  route-path
@@ -182,7 +182,7 @@
    http-parse parser which decide amongst themselves, during different points in
    the parsing, when to dispatch to the found router, when to send chunked
    content to the route, etc."
-  (wlog +log-debug+ "(connect) ~a~%" sock)
+  (wlog :debug "(connect) ~a~%" sock)
   ;; TODO pass client address info into :connect hook
   (run-hooks :connect)
   (setup-parser sock))
@@ -191,7 +191,7 @@
   "A simple read-cb handler that passed data to the HTTP parser attached to the
    socket the data is coming in on. The parser runs all necessary callbacks
    directly, so this function just blindly feeds the data in."
-  (wlog +log-debug+ "(read) ~a: ~a~%" sock (babel:octets-to-string data))
+  (wlog :debug "(read) ~a: ~a~%" sock (babel:octets-to-string data))
   ;; grab the parser stored in the socket and pipe the data into it
   (let ((parser (getf (as:socket-data sock) :parser)))
     (funcall parser data)))
@@ -202,7 +202,7 @@
 
 (defmethod start-server ((listener listener))
   ;; start the async server
-  (wlog +log-notice+ "(start) Starting Wookie~%")
+  (wlog :notice "(start) Starting Wookie~%")
   (as:tcp-server (listener-bind listener) (listener-port listener)
     'read-data
     'listener-event-handler

@@ -36,7 +36,7 @@
    
    Returns a list of the classes in the given error-table, ordered by their
    relative specificity."
-  (wlog +log-debug+ "(error-handler) Add error handler ~s~%" error-type)
+  (wlog :debug "(error-handler) Add error handler ~s~%" error-type)
   ;; only bother recalculating the precedence list if we have a new key in the
   ;; hash...
   (unless (prog1 (nth-value 1 (gethash error-type error-table))

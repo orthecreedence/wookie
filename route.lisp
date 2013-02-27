@@ -24,7 +24,7 @@
 
 (defun clear-routes ()
   "Clear out all routes."
-  (wlog +log-debug+ "(route) Clearing routes~%")
+  (wlog :debug "(route) Clearing routes~%")
   (setf *routes* (make-array 0 :adjustable t :fill-pointer t)))
 
 (defun make-route (method resource fn &key regex case-sensitive allow-chunking vhost)
@@ -82,7 +82,7 @@
   "Add a new route to the table. If a route already exists with the same method
    and resource string, it is replaced with the new one in the same position the 
    old route existed in (as to preserve routing order)."
-  (wlog +log-debug+ "(route) Upsert ~s~%" new-route)
+  (wlog :debug "(route) Upsert ~s~%" new-route)
   (let ((route-found nil)
         (resource-str (getf new-route :resource-str) )
         (method (getf new-route :method)))
@@ -100,7 +100,7 @@
 
 (defun clear-route (method resource-str)
   "Clear out a route in the routing table."
-  (wlog +log-debug+ "(route) Clear route ~s~%" resource-str)
+  (wlog :debug "(route) Clear route ~s~%" resource-str)
   (setf *routes* (delete-if (lambda (route)
                               (and (eq (getf route :method) method)
                                    (string= (getf route :resource-str) resource-str)))
