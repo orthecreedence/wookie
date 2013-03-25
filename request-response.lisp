@@ -83,7 +83,7 @@
   (run-hooks :response-started response (response-request response) status headers body)
   (let* ((headers (append (response-headers response) headers))
          (body-enc (when body (babel:string-to-octets body :encoding :utf-8)))
-         (headers (if body
+         (headers (if (and body (not (getf headers :content-length)))
                       (append headers (list :content-length (length body-enc)))
                       headers))
          (request (response-request response))
@@ -142,7 +142,8 @@
           (setup-parser socket)))
 
     ;; mark the response as having been sent
-    (setf (response-finished-p response) t)))
+    (setf (response-finished-p response) t)
+    response))
 
 (defun start-response (response &key (status 200) headers)
   "Start a response to the client, but do not specify body content (or close the
@@ -191,7 +192,8 @@
       :write-cb (lambda (socket)
                   (when close
                     (wlog :debug "(response) Finish, close socket~%")
-                    (as:close-socket socket))))))
+                    (as:close-socket socket)))))
+  response)
 
 (defgeneric add-request-error-handler (request error-type handler)
   (:documentation
