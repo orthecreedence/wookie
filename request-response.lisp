@@ -195,6 +195,8 @@
                     (as:close-socket socket)))))
   response)
 
+;; -----------------------------------------------------------------------------
+;; TODO remove possibly. kind of useless except in very basic cases, unfortunately.
 (defgeneric add-request-error-handler (request error-type handler)
   (:documentation
     "Adds the given handler to the request's erro handling table. The handler
@@ -211,4 +213,5 @@
     (setf (request-error-handlers request) (make-hash-table :test #'eq)))
   (let ((precedence (add-error-handler error-type handler :error-table (request-error-handlers request))))
     (setf (request-error-precedence request) precedence)))
+;; -----------------------------------------------------------------------------
 

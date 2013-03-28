@@ -41,7 +41,7 @@
            #:send-response
            #:start-response
            #:finish-response
-           #:add-request-error-handler
+           ;#:add-request-error-handler
 
            #:*enabled-plugins*
            #:*plugin-folders*
