@@ -196,16 +196,13 @@
   (let ((parser (getf (as:socket-data sock) :parser)))
     (funcall parser data)))
 
-(defgeneric start-server (listener &key catch-all-errors)
+(defgeneric start-server (listener)
   (:documentation
     "Start Wookie with the given listener."))
 
-(defmethod start-server ((listener listener) &key catch-all-errors)
+(defmethod start-server ((listener listener))
   ;; start the async server
   (wlog :notice "(start) Starting Wookie~%")
-  (when catch-all-errors
-    (setf (cl-async-base:event-base-default-event-handler cl-async-base:*event-base*)
-          'listener-event-handler))
   (as:tcp-server (listener-bind listener) (listener-port listener)
     'read-data
     'listener-event-handler
