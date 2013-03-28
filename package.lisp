@@ -9,6 +9,9 @@
            #:wookie-error-msg
            #:wookie-error-socket
 
+           #:add-hook
+           #:remove-hook
+           
            #:route-error
            #:route-not-found
            #:clear-routes
