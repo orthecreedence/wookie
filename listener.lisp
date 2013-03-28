@@ -19,20 +19,6 @@
       (return-from main-event-handler))
     (wlog :notice "(event) Event ~a~%" event)
 
-    ;; dispatch request errors
-    (when (and request (request-error-handlers request))
-      (setf handled (dispatch-event event
-                                    (request-error-handlers request)
-                                    (request-error-precedence request)
-                                    event socket request response)))
-
-    ;; dispatch global errors, unless request error handler worked its magic...
-    (unless handled
-      (setf handled (dispatch-event event
-                                    *wookie-error-handlers*
-                                    *wookie-error-handler-class-precedence*
-                                    event socket request response)))
-
     ;; if the event wasn't handled, try some default handling here
     (unless handled
       (handler-case (error event)
