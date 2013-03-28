@@ -29,7 +29,7 @@
    error-type is a symbol describing a *condition*.
    
    The handler (for all types) is defined as:
-     (lambda (event socket &optional request response) ...)
+     (lambda (event &optional socket request response) ...)
    
    Although the socket can be derived from the (request-socket) accessor, the
    request may not always be present, while the socket always is.
