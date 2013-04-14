@@ -147,7 +147,7 @@
         (force-output stream)))
     (finish-response response)))
 
-(defplugfun def-directory-route (route-path local-path)
+(defplugfun def-directory-route (route-path local-path &key disable-directory-listing)
   "Define a route that handles directory listings and file serving. If a file or
    directory doesn't exist, run the next route."
   (flet ((remove-trailing-slashes (path)
@@ -165,11 +165,14 @@
                (file-path (remove-route-path file-path))
                (local-file (concatenate 'string
                                         (namestring local-path)
-                                        "/" file-path)))
+                                        "/" file-path))
+               (is-directory (cl-fad:directory-exists-p local-file)))
           (cond
-            ((cl-fad:directory-exists-p local-file)
+            ((and (not disable-directory-listing)
+                  is-directory)
              (directory-listing file-path route-path local-path req res))
-            ((cl-fad:file-exists-p local-file)
+            ((and (not is-directory)
+                  (cl-fad:file-exists-p local-file))
              (send-file file-path route-path local-path req res))
             (t 
              (next-route))))))))
