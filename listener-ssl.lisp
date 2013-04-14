@@ -6,7 +6,7 @@
    (password :accessor listener-password :initarg :password :initform nil))
   (:documentation "Describes an HTTPS listener."))
 
-(defmethod start-server ((listener ssl-listener) &key catch-all-errors)
+(defmethod start-server ((listener ssl-listener))
   ;; start the async SSL server
   (as-ssl:tcp-ssl-server (listener-bind listener) (listener-port listener)
     'read-data

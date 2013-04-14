@@ -8,8 +8,10 @@
            #:wookie-error
            #:wookie-error-msg
            #:wookie-error-socket
-           #:add-error-handler
 
+           #:add-hook
+           #:remove-hook
+           
            #:route-error
            #:route-not-found
            #:clear-routes
@@ -41,7 +43,6 @@
            #:send-response
            #:start-response
            #:finish-response
-           #:add-request-error-handler
 
            #:*enabled-plugins*
            #:*plugin-folders*

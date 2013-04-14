@@ -195,20 +195,3 @@
                     (as:close-socket socket)))))
   response)
 
-(defgeneric add-request-error-handler (request error-type handler)
-  (:documentation
-    "Adds the given handler to the request's erro handling table. The handler
-     will only be fired if the type of the error being triggered is a subtype of
-     the given error-type symbol.
-     
-     An error handler is in the format
-       (lambda (event) ...)"))
-
-(defmethod add-request-error-handler ((request request) (error-type symbol) (handler function))
-  ;; setup an error table if none exists
-  (wlog :debug "(request) Add request error handler ~a: ~s~%" request error-type)
-  (unless (hash-table-p (request-error-handlers request))
-    (setf (request-error-handlers request) (make-hash-table :test #'eq)))
-  (let ((precedence (add-error-handler error-type handler :error-table (request-error-handlers request))))
-    (setf (request-error-precedence request) precedence)))
-
