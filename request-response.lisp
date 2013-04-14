@@ -188,7 +188,7 @@
            (setf close t)))))
 
     ;; write empty chunk
-    (as:write-socket-data socket #(48 13 10 13 10)  ; "0\r\n\r\n"
+    (as:write-socket-data socket (as:bytes #(48 13 10 13 10))  ; "0\r\n\r\n"
       :write-cb (lambda (socket)
                   (when close
                     (wlog :debug "(response) Finish, close socket~%")

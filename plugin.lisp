@@ -52,7 +52,7 @@
                             'asdf:load-op
                             (asdf:find-system asdf)))
              (plugin-deps (mapcar (lambda (asdf)
-                                    (intern (string asdf) :keyword))
+                                    (intern (asdf:component-name (asdf:find-system asdf)) :keyword))
                                   (cdadr tmp-deps)))
              (plugin-systems (loop for system in *available-plugins*
                                    for i from 0
