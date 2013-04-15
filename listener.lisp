@@ -65,38 +65,38 @@
                (when route-dispatched
                  (return-from dispatch-route))
                (setf route-dispatched t)
-               (run-hooks :pre-route request response)
-               (flet ((run-route (route)
-                        (if route
-                            (let ((route-fn (getf route :curried-route)))
-                              (wlog :debug "(route) Dispatch ~a: ~s~%" sock route)
-                              (funcall route-fn request response))
-                            (progn
-                              (wlog :notice "(route) Missing route: ~s~%" route)
-                              (funcall 'main-event-handler (make-instance 'route-not-found
-                                                                          :resource route-path
-                                                                          :socket sock) sock)
-                              (return-from dispatch-route)))))
-                 ;; load our route, but if we encounter a use-next-route condition,
-                 ;; add the route to the exclude list and load the next route with
-                 ;; the same matching criteria as before
-                 (let ((route-exclude nil))
-                   (loop
-                     (handler-case
-                       ;; run our route and break the loop if successful
-                       (progn
-                         (run-route route)
-                         (return))
-                       ;; caught a use-next-route condition, push the current
-                       ;; route onto the exclude list, load the next route, and
-                       ;; try again
-                       (use-next-route ()
-                         (wlog :debug "(route) Next route~%")
-                         (push route route-exclude)
-                         (setf route (find-route (http-parse:http-method http)
-                                                 route-path
-                                                 :exclude route-exclude)))))))
-               (run-hooks :post-route request response))
+               (wait-for (run-hooks :pre-route request response)
+                 (flet ((run-route (route)
+                          (if route
+                              (let ((route-fn (getf route :curried-route)))
+                                (wlog :debug "(route) Dispatch ~a: ~s~%" sock route)
+                                (funcall route-fn request response))
+                              (progn
+                                (wlog :notice "(route) Missing route: ~s~%" route)
+                                (funcall 'main-event-handler (make-instance 'route-not-found
+                                                                            :resource route-path
+                                                                            :socket sock) sock)
+                                (return-from dispatch-route)))))
+                   ;; load our route, but if we encounter a use-next-route condition,
+                   ;; add the route to the exclude list and load the next route with
+                   ;; the same matching criteria as before
+                   (let ((route-exclude nil))
+                     (loop
+                       (handler-case
+                         ;; run our route and break the loop if successful
+                         (progn
+                           (run-route route)
+                           (return))
+                         ;; caught a use-next-route condition, push the current
+                         ;; route onto the exclude list, load the next route, and
+                         ;; try again
+                         (use-next-route ()
+                           (wlog :debug "(route) Next route~%")
+                           (push route route-exclude)
+                           (setf route (find-route (http-parse:http-method http)
+                                                   route-path
+                                                   :exclude route-exclude)))))))
+                 (run-hooks :post-route request response)))
              (header-callback (headers)
                ;; if we got the headers, it means we can find the route we're
                ;; destined to use. if the route accepts chunks and the body is
@@ -113,44 +113,44 @@
                  ;; save the parsed uri for plugins/later code
                  (setf (request-uri request) parsed-uri
                        (request-headers request) headers)
-                 (run-hooks :parsed-headers request)
-                 ;; set up some tracking/state values now that we have headers
-                 (setf route found-route
-                       (request-method request) method
-                       (request-resource request) resource)
-                 ;; handle "Expect: 100-continue" properly
-                 (when (string= (getf headers :expect) "100-continue")
-                   (if found-route
-                       (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
-                                                          #\return #\newline #\return #\newline))
+                 (wait-for (run-hooks :parsed-headers request)
+                   ;; set up some tracking/state values now that we have headers
+                   (setf route found-route
+                         (request-method request) method
+                         (request-resource request) resource)
+                   ;; handle "Expect: 100-continue" properly
+                   (when (string= (getf headers :expect) "100-continue")
+                     (if found-route
+                         (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
+                                                            #\return #\newline #\return #\newline))
 
-                       (progn
-                         (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
-                                                      sock)
-                         (return-from header-callback))))
-                 ;; if we found a route and the route allows chunking, call the
-                 ;; route now so it can set up its chunk handler before we start
-                 ;; streaming the body chunks to it
-                 ;;
-                 ;; NOTE that we don't *need* to test if the data is actually
-                 ;; chunked for a chunk-enabled route to be able to receive the
-                 ;; data. if a chunk-enabled route gets called for data that
-                 ;; isn't chunked, it will receive all the data for that request
-                 ;; as one big chunk.
-                 (when (and found-route
-                            (getf found-route :allow-chunking))
-                   (dispatch-route))))
+                         (progn
+                           (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
+                                                        sock)
+                           (return-from header-callback))))
+                   ;; if we found a route and the route allows chunking, call the
+                   ;; route now so it can set up its chunk handler before we start
+                   ;; streaming the body chunks to it
+                   ;;
+                   ;; NOTE that we don't *need* to test if the data is actually
+                   ;; chunked for a chunk-enabled route to be able to receive the
+                   ;; data. if a chunk-enabled route gets called for data that
+                   ;; isn't chunked, it will receive all the data for that request
+                   ;; as one big chunk.
+                   (when (and found-route
+                              (getf found-route :allow-chunking))
+                     (dispatch-route)))))
              (body-callback (chunk finishedp)
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
-               (run-hooks :body-chunk request chunk finishedp)
-               (let ((request-body-cb (request-body-callback request)))
-                 (when request-body-cb
-                   (funcall request-body-cb chunk finishedp))))
+               (wait-for (run-hooks :body-chunk request chunk finishedp)
+                 (let ((request-body-cb (request-body-callback request)))
+                   (when request-body-cb
+                     (funcall request-body-cb chunk finishedp)))))
              (finish-callback ()
                ;; make sure we always dispatch at the end.
-               (run-hooks :body-complete request)
-               (dispatch-route)))
+               (wait-for (run-hooks :body-complete request)
+                 (dispatch-route))))
       ;; make an HTTP parser. will be attached to the socket and will be
       ;; responsible for running all of the above callbacks directly as data
       ;; filters in from the read callback.
@@ -170,8 +170,8 @@
    content to the route, etc."
   (wlog :debug "(connect) ~a~%" sock)
   ;; TODO pass client address info into :connect hook
-  (run-hooks :connect sock)
-  (setup-parser sock))
+  (wait-for (run-hooks :connect sock)
+    (setup-parser sock)))
 
 (defun read-data (sock data)
   "A simple read-cb handler that passed data to the HTTP parser attached to the

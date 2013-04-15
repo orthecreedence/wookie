@@ -4,6 +4,7 @@
   :version "0.2.5"
   :description "An evented webserver for Common Lisp."
   :depends-on (#:alexandria
+               #:cl-async-future
                #:cl-async 
                #-(or :wookie-no-ssl) #:cl-async-ssl
                #:cl-ppcre

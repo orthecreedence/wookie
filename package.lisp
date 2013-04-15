@@ -1,5 +1,5 @@
 (defpackage :wookie
-  (:use :cl :wookie-config :wookie-util)
+  (:use :cl :wookie-config :wookie-util :cl-async-future)
   (:export #:*log-level*
 
            #:*hide-version*

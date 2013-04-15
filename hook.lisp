@@ -12,11 +12,52 @@
       (setf *hooks* (make-hash-table :size 10 :test #'eq))))
 
 (defun run-hooks (hook &rest args)
-  "Run all hooks of a specific type."
+  "Run all hooks of a specific type. Returns a future that is finished with no
+   values when all hooks have successfully run. If a hook callback returns a
+   future object, then run-hooks will wait for it to finish before finishing its
+   own future. If multiple callbacks return futures, run-hooks waits for ALL of
+   them to finish before finishing its future.
+   
+   This setup allows an application to add extra processing to hooks that may be
+   asynchronous without blocking the event loop, and without the processing of
+   the current request stampeding full steam ahead when it may need access to
+   information the hook is grabbing async.
+   
+   For instance, let's say you want to check user auth on each request, you
+   could set up a :pre-route hook that reads the request and checks the auth
+   info against your database, finishing the future it returns only when the
+   database has responded. Once the future is finished, then Wookie will
+   continue processing the request."
   (wlog :debug "(hook) Run ~s (~a)~%" hook args)
-  (let ((hooks (gethash hook *hooks*)))
+  (let ((future (make-future))
+        (hooks (gethash hook *hooks*))
+        (collected-futures nil))  ; holds futures returned from hook functions
     (dolist (hook hooks)
-      (apply (getf hook :function) args))))
+      ;; see if a future was returned from the hook function. if so, save it.
+      (let ((ret (apply (getf hook :function) args)))
+        (when (futurep ret)
+          (push ret collected-futures))))
+
+    (if (null collected-futures)
+        ;; no futures returned from our hook functions, so we can continue
+        ;; processing our current request.
+        (finish future)
+        ;; we did collect futures from the hook functions, so let's wait for all
+        ;; if them to finish before continuing with the current request.
+        (let* ((num-futures-finished 0)
+               ;; create a function that tracks how many futures have finished
+               (finish-fn
+                 (lambda ()
+                   (incf num-futures-finished)
+                   (when (<= (length collected-futures) num-futures-finished)
+                     ;; all our watched futures are finished, continue the
+                     ;; request!
+                     (finish future)))))
+          ;; watch each of the collected futures
+          (dolist (future collected-futures)
+            (attach future finish-fn))))
+    ;; return the future that tracks when all hooks have successfully completed
+    future))
 
 (defun add-hook (hook function &optional hook-name)
   "Add a hook into the wookie system. Hooks will be run in the order they were
