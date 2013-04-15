@@ -52,7 +52,7 @@
                             'asdf:load-op
                             (asdf:find-system asdf)))
              (plugin-deps (mapcar (lambda (asdf)
-                                    (intern (string asdf) :keyword))
+                                    (intern (asdf:component-name (asdf:find-system asdf)) :keyword))
                                   (cdadr tmp-deps)))
              (plugin-systems (loop for system in *available-plugins*
                                    for i from 0
@@ -124,7 +124,7 @@
           ;; load it (a lot faster than individually loading each asdf system).
           (let ((asdf-list (loop for plugin in *enabled-plugins*
                                  collect (getf *available-plugins* plugin))))
-            (apply 'asdf::do-defsystem
+            (apply (eval (cadr (macroexpand-1 '(asdf:defsystem test))))
                    'wookie-plugin-load-system
                    `(:author "The high king himself, Lord Wookie."
                      :license "Unconditional servitude."
@@ -132,7 +132,7 @@
                      :description "An auto-generated ASDF system that helps make loading plugins fast."
                      :depends-on ,asdf-list))
             (load-system :wookie-plugin-load-system))))))
-  
+
 (defun match-plugin-asdf (plugin-name asdf-system)
   "Match a plugin and an ASDF system toeach other."
   (setf (getf *available-plugins* plugin-name) asdf-system))
