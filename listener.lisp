@@ -170,7 +170,7 @@
    content to the route, etc."
   (wlog :debug "(connect) ~a~%" sock)
   ;; TODO pass client address info into :connect hook
-  (run-hooks :connect)
+  (run-hooks :connect sock)
   (setup-parser sock))
 
 (defun read-data (sock data)
