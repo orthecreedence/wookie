@@ -33,6 +33,7 @@
            #:request-resource
            #:request-headers
            #:request-uri
+           #:request-data
            #:request-plugin-data
            #:request-body-callback
            #:request-http
