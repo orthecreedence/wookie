@@ -18,16 +18,10 @@
    with the request."
   (when (plugin-request-data :post request)
     ;; convert the body to a string via the Content-Type header
-    (let* ((hash-post-vars (make-hash-table :test #'equal))
-           (headers (request-headers request))
+    (let* ((headers (request-headers request))
            (body (body-to-string (http-parse:http-body (request-http request))
                                  (getf headers :content-type))))
-      ;; IF the body is a querystring, parse it and set into the POST hash
-      (when (querystringp body)
-        (map-querystring body
-                         (lambda (key val)
-                           (setf (gethash key hash-post-vars) val)))
-        (setf (plugin-request-data :post request) hash-post-vars)))))
+      (setf (plugin-request-data :post request) (querystring-to-hash body)))))
 
 (defplugfun post-var (request key)
   "Get a value from the POST data by key."

@@ -13,20 +13,20 @@
       (let* ((hash-form-vars (make-hash-table :test #'equal))
              (hash-file-data (make-hash-table :test #'equal))
              (cur-file nil)
+             (field-bytes (make-array 0 :element-type '(unsigned-byte 8)))
              (multi-cb (lambda (field-name field-headers field-meta body-bytes body-complete-p)
                          (flet ((save-form-data ()
-                                  ;; make accessing the form data hash value less painful
-                                  (symbol-macrolet ((hash-set (gethash field-name hash-form-vars)))
-                                    ;; if we don't have an array under the hash value yet, init one
-                                    (unless hash-set
-                                      (setf hash-set (make-array 0 :element-type '(unsigned-byte 8))))
-                                    ;; append the data
-                                    (setf hash-set (cl-async-util::append-array
-                                                     hash-set
-                                                     body-bytes))
-                                    ;; once this field is complete, convert the body to a string
-                                    (when body-complete-p
-                                      (setf hash-set (body-to-string hash-set (getf field-headers :content-type))))))
+                                  ;; append the data into our tmp field-bytes storage
+                                  (setf field-bytes (cl-async-util:append-array
+                                                      field-bytes
+                                                      body-bytes))
+                                  ;; once this field is complete, convert the body to a string
+                                  (when body-complete-p
+                                    (let ((body (body-to-string field-bytes (getf field-headers :content-type))))
+                                      ;; make sure we honor sub-fields (ie data[user][name])
+                                      (set-querystring-hash hash-form-vars field-name body))
+                                    ;; reset our tmp storage for the next field
+                                    (setf field-bytes (make-array 0 :element-type '(unsigned-byte 8)))))
                                 (save-file-data ()
                                   ;; open a tmp file for writing if we don't already have a handle
                                   (unless cur-file

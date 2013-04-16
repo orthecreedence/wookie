@@ -5,11 +5,9 @@
 (defun parse-get-vars (request)
   "Grab GET data from parsed URI querystring and set into a hash table stored
    with the request."
-  (let ((hash-get-vars (make-hash-table :test #'equal)))
-    (map-querystring (puri:uri-query (request-uri request))
-      (lambda (key val)
-        (setf (gethash key hash-get-vars) val)))
-    (setf (plugin-request-data :get request) hash-get-vars)))
+   (setf (plugin-request-data :get request) (querystring-to-hash
+                                              (puri:uri-query
+                                                (request-uri request)))))
 
 (defplugfun get-var (request key)
   "Get a value from the GET data by key."
