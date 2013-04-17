@@ -93,7 +93,8 @@
       (dolist (part parts)
         (let* ((split (cl-ppcre:split "=" part))
                (key (car split))
-               (val (cadr split)))
+               (val (cadr split))
+               (val (do-urlencode:urldecode val :lenientp t :queryp t)))
           (set-querystring-hash main-hash key val)))
       main-hash)))
 
