@@ -50,22 +50,17 @@
     (funcall 'main-event-handler ev sock)))
 
 (defun get-overridden-method (request original-method)
-  "Tries a few ways of getting an HTTP method for routing. Obviously, using the
-   method verbatim from the HTTP request is great, but sometimes (in the case of
-   AJAX) you need to tell what method you want to route on outside of the HTTP
-   request itself (say, in a GET or POST var).
-   
-   This function defaults to using the supplied method, but if the http-var
-   plugin is loaded, it looks under the _method var (GET/POST/multipart) which
-   it uses to override the method."
-  (let* ((hash (or (plugin-request-data :get request)
-                   (plugin-request-data :post request)
-                   (plugin-request-data :multipart request)))
-         (val (if hash
-                  (gethash "_method" hash)
-                  nil)))
+  "Checks if there is a GET var called _method, and if so, uses it instead of
+   the provided method."
+  (let* ((hash (plugin-request-data :get request))
+         (val (when (hash-table-p hash)
+                (gethash "_method" hash))))
     (if (stringp val)
-        (intern (string-upcase val) :keyword)
+        (let ((new-method (intern (string-upcase val) :keyword)))
+          ;; make sure it's copacetic
+          (if (find new-method '(:get :post :delete :put :head :options :trace :connect))
+              new-method
+              original-method))
         original-method)))
 
 (defun setup-parser (sock)
