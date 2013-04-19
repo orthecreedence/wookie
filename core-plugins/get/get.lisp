@@ -12,7 +12,8 @@
 (defplugfun get-var (request key)
   "Get a value from the GET data by key."
   (let ((hash-get-vars (plugin-request-data :get request)))
-    (gethash key hash-get-vars)))
+    (when hash-get-vars
+      (gethash key hash-get-vars))))
 
 (defun init-get-vars ()
   (add-hook :parsed-headers 'parse-get-vars :get-core-parse-vars))
