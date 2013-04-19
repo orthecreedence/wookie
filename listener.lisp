@@ -49,6 +49,25 @@
                       (as:tcp-socket ev)))))
     (funcall 'main-event-handler ev sock)))
 
+(defun get-overridden-method (request original-method)
+  "Tries a few ways of getting an HTTP method for routing. Obviously, using the
+   method verbatim from the HTTP request is great, but sometimes (in the case of
+   AJAX) you need to tell what method you want to route on outside of the HTTP
+   request itself (say, in a GET or POST var).
+   
+   This function defaults to using the supplied method, but if the http-var
+   plugin is loaded, it looks under the _method var (GET/POST/multipart) which
+   it uses to override the method."
+  (let* ((hash (or (plugin-request-data :get request)
+                   (plugin-request-data :post request)
+                   (plugin-request-data :multipart request)))
+         (val (if hash
+                  (gethash "_method" hash)
+                  nil)))
+    (if (stringp val)
+        (intern (string-upcase val) :keyword)
+        original-method)))
+
 (defun setup-parser (sock)
   "Setup a parser on a socket. This can be called multiple times on the same
    socket (usually at the end of a request) so that if another request comes in
@@ -108,38 +127,41 @@
                       (parsed-uri (puri:parse-uri resource))
                       (path (do-urlencode:urldecode (puri:uri-path parsed-uri) :lenientp t))
                       (host (getf headers :host))
-                      (found-route (find-route method path :host host)))
+                      (found-route nil))
                  (setf route-path path)
                  ;; save the parsed uri for plugins/later code
                  (setf (request-uri request) parsed-uri
                        (request-headers request) headers)
                  (wait-for (run-hooks :parsed-headers request)
                    ;; set up some tracking/state values now that we have headers
-                   (setf route found-route
-                         (request-method request) method
-                         (request-resource request) resource)
-                   ;; handle "Expect: 100-continue" properly
-                   (when (string= (getf headers :expect) "100-continue")
-                     (if found-route
-                         (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
-                                                            #\return #\newline #\return #\newline))
+                   ;; ALSO, check for _method var when routing.
+                   (let* ((method (get-overridden-method request method))
+                          (found-route (find-route method path :host host)))
+                     (setf route found-route
+                           (request-method request) method
+                           (request-resource request) resource)
+                     ;; handle "Expect: 100-continue" properly
+                     (when (string= (getf headers :expect) "100-continue")
+                       (if found-route
+                           (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
+                                                              #\return #\newline #\return #\newline))
 
-                         (progn
-                           (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
-                                                        sock)
-                           (return-from header-callback))))
-                   ;; if we found a route and the route allows chunking, call the
-                   ;; route now so it can set up its chunk handler before we start
-                   ;; streaming the body chunks to it
-                   ;;
-                   ;; NOTE that we don't *need* to test if the data is actually
-                   ;; chunked for a chunk-enabled route to be able to receive the
-                   ;; data. if a chunk-enabled route gets called for data that
-                   ;; isn't chunked, it will receive all the data for that request
-                   ;; as one big chunk.
-                   (when (and found-route
-                              (getf found-route :allow-chunking))
-                     (dispatch-route)))))
+                           (progn
+                             (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
+                                                          sock)
+                             (return-from header-callback))))
+                     ;; if we found a route and the route allows chunking, call the
+                     ;; route now so it can set up its chunk handler before we start
+                     ;; streaming the body chunks to it
+                     ;;
+                     ;; NOTE that we don't *need* to test if the data is actually
+                     ;; chunked for a chunk-enabled route to be able to receive the
+                     ;; data. if a chunk-enabled route gets called for data that
+                     ;; isn't chunked, it will receive all the data for that request
+                     ;; as one big chunk.
+                     (when (and found-route
+                                (getf found-route :allow-chunking))
+                       (dispatch-route))))))
              (body-callback (chunk finishedp)
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
