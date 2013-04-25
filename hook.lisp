@@ -32,11 +32,16 @@
   (let ((future (make-future))
         (hooks (gethash hook *hooks*))
         (collected-futures nil))  ; holds futures returned from hook functions
-    (dolist (hook hooks)
-      ;; see if a future was returned from the hook function. if so, save it.
-      (let ((ret (apply (getf hook :function) args)))
-        (when (futurep ret)
-          (push ret collected-futures))))
+    (handler-case
+      (dolist (hook hooks)
+        ;; see if a future was returned from the hook function. if so, save it.
+        (let ((ret (apply (getf hook :function) args)))
+          (when (futurep ret)
+            (push ret collected-futures))))
+      ((or error simple-error) (e)
+       (wlog :error "(hook) Caught error while running hooks: ~a~%" e)
+       (signal-error future e)
+       (return-from run-hooks future)))
 
     (if (null collected-futures)
         ;; no futures returned from our hook functions, so we can continue
