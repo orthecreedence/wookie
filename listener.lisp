@@ -30,10 +30,10 @@
             (send-response response
                            :status 500
                            :body (format nil "There was an error processing your request: ~a" event))))
-        (as:tcp-eof ()
+        (as:tcp-eof (e)
           ;; simple EOF, not much we can do, and we don't want to kill the
           ;; server for it...
-          nil)
+          (setf (as:socket-data (as:tcp-socket e)) nil))
         (t ()
           ;; unhandled. rethrow it.
           (error event))))))
@@ -79,7 +79,7 @@
                (when route-dispatched
                  (return-from dispatch-route))
                (setf route-dispatched t)
-               (wait-for (run-hooks :pre-route request response)
+               (do-run-hooks (run-hooks :pre-route request response)
                  (flet ((run-route (route)
                           (if route
                               (let ((route-fn (getf route :curried-route)))
@@ -121,13 +121,12 @@
                       (resource (http-parse:http-resource http))
                       (parsed-uri (puri:parse-uri resource))
                       (path (do-urlencode:urldecode (puri:uri-path parsed-uri) :lenientp t))
-                      (host (getf headers :host))
-                      (found-route nil))
+                      (host (getf headers :host)))
                  (setf route-path path)
                  ;; save the parsed uri for plugins/later code
                  (setf (request-uri request) parsed-uri
                        (request-headers request) headers)
-                 (wait-for (run-hooks :parsed-headers request)
+                 (do-run-hooks (run-hooks :parsed-headers request)
                    ;; set up some tracking/state values now that we have headers
                    ;; ALSO, check for _method var when routing.
                    (let* ((method (get-overridden-method request method))
@@ -160,13 +159,13 @@
              (body-callback (chunk finishedp)
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
-               (wait-for (run-hooks :body-chunk request chunk finishedp)
+               (do-run-hooks (run-hooks :body-chunk request chunk finishedp)
                  (let ((request-body-cb (request-body-callback request)))
                    (when request-body-cb
                      (funcall request-body-cb chunk finishedp)))))
              (finish-callback ()
                ;; make sure we always dispatch at the end.
-               (wait-for (run-hooks :body-complete request)
+               (do-run-hooks (run-hooks :body-complete request)
                  (dispatch-route))))
       ;; make an HTTP parser. will be attached to the socket and will be
       ;; responsible for running all of the above callbacks directly as data
@@ -187,7 +186,7 @@
    content to the route, etc."
   (wlog :debug "(connect) ~a~%" sock)
   ;; TODO pass client address info into :connect hook
-  (wait-for (run-hooks :connect sock)
+  (do-run-hooks (sock) (run-hooks :connect sock)
     (setup-parser sock)))
 
 (defun read-data (sock data)

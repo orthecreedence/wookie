@@ -81,7 +81,7 @@
     (error (make-instance 'response-already-sent :response response)))
   
   ;; run the response hooks
-  (wait-for (run-hooks :response-started response (response-request response) status headers body)
+  (do-run-hooks ((request-socket (response-request response))) (run-hooks :response-started response (response-request response) status headers body)
     (let* ((headers (append (response-headers response) headers))
            (body-enc (when body (babel:string-to-octets body :encoding :utf-8)))
            (headers (if (and body (not (getf headers :content-length)))
@@ -135,6 +135,7 @@
           (as:write-socket-data socket nil
             :write-cb (lambda (socket)
                         (wlog :debug "(response) Close socket ~a~%" response)
+                        (setf (as:socket-data socket) nil)
                         (as:close-socket socket)))
           ;; we sent a response, but aren't closing. reset the parser so that if
           ;; another request comes in on the same socket, WE'LL BE READY!!!!11one
@@ -193,6 +194,7 @@
       :write-cb (lambda (socket)
                   (when close
                     (wlog :debug "(response) Finish, close socket~%")
+                    (setf (as:socket-data socket) nil)
                     (as:close-socket socket)))))
   response)
 

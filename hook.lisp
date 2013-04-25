@@ -54,8 +54,17 @@
                      ;; request!
                      (finish future)))))
           ;; watch each of the collected futures
-          (dolist (future collected-futures)
-            (attach future finish-fn))))
+          (future-handler-case
+            (dolist (collected-future collected-futures)
+              (attach collected-future finish-fn))
+            ;; catch any errors while processing and forward them to the hook
+            ;; runner
+            ((or error simple-error) (e)
+              (wlog :debug "(hook) Caught future error processing hook ~a (~a)~%" hook (type-of e))
+              (signal-error future e)
+              ;; clear out all callbacks/errbacks/values/etc. essentially, this
+              ;; future and anything it references is gone forever.
+              (reset-future future)))))
     ;; return the future that tracks when all hooks have successfully completed
     future))
 
