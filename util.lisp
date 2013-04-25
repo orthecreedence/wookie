@@ -150,11 +150,11 @@
            ,@body)
          (error ()
            (if (as:socket-closed-p ,sock)
+               ;; clear out the socket's data, just in case
+               (setf (as:socket-data ,sock) nil)
                ;; reset the parser for this socket if it's open. this
                ;; should suffice as far as garbage collection goes.
-               (setup-parser ,sock)
-               ;; clear out the socket's data, just in case
-               (setf (as:socket-data ,sock) nil)))))))
+               (setup-parser ,sock)))))))
 
 (defun lookup-status-text (status-code)
   "Get the HTTP standard text that goes along with a status code."
