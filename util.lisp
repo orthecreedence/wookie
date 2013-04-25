@@ -9,7 +9,6 @@
            #:body-to-string
            #:getf-reverse
            #:generate-tmp-file-name
-           #:do-run-hooks
            #:lookup-status-text))
 (in-package :wookie-util)
 
@@ -138,23 +137,6 @@
   "Generate the a full path/filename for a temporary file that does not exist
    already in the tmp directory."
   (format nil "~atmp~a" (namestring *tmp-file-store*) (incf *tmp-file-counter*)))
-
-(defmacro do-run-hooks ((socket) run-hook-cmd &body body)
-  "Run a number of hooks, catch any errors while running said hooks, and if an
-   error occurs, clear out all traces of the current request (specified on the
-   socket). If no errors occur, run the body normally."
-  (let ((sock (gensym "sock")))
-    `(let ((,sock ,socket))
-       (future-handler-case
-         (wait-for ,run-hook-cmd
-           ,@body)
-         (error ()
-           (if (as:socket-closed-p ,sock)
-               ;; clear out the socket's data, just in case
-               (setf (as:socket-data ,sock) nil)
-               ;; reset the parser for this socket if it's open. this
-               ;; should suffice as far as garbage collection goes.
-               (setup-parser ,sock)))))))
 
 (defun lookup-status-text (status-code)
   "Get the HTTP standard text that goes along with a status code."
