@@ -79,7 +79,7 @@
                (when route-dispatched
                  (return-from dispatch-route))
                (setf route-dispatched t)
-               (do-run-hooks (run-hooks :pre-route request response)
+               (do-run-hooks (sock) (run-hooks :pre-route request response)
                  (flet ((run-route (route)
                           (if route
                               (let ((route-fn (getf route :curried-route)))
@@ -110,7 +110,8 @@
                            (setf route (find-route (http-parse:http-method http)
                                                    route-path
                                                    :exclude route-exclude)))))))
-                 (run-hooks :post-route request response)))
+                 (do-run-hooks (sock) (run-hooks :post-route request response)
+                   nil)))
              (header-callback (headers)
                ;; if we got the headers, it means we can find the route we're
                ;; destined to use. if the route accepts chunks and the body is
@@ -126,7 +127,7 @@
                  ;; save the parsed uri for plugins/later code
                  (setf (request-uri request) parsed-uri
                        (request-headers request) headers)
-                 (do-run-hooks (run-hooks :parsed-headers request)
+                 (do-run-hooks (sock) (run-hooks :parsed-headers request)
                    ;; set up some tracking/state values now that we have headers
                    ;; ALSO, check for _method var when routing.
                    (let* ((method (get-overridden-method request method))
@@ -159,13 +160,13 @@
              (body-callback (chunk finishedp)
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
-               (do-run-hooks (run-hooks :body-chunk request chunk finishedp)
+               (do-run-hooks (sock) (run-hooks :body-chunk request chunk finishedp)
                  (let ((request-body-cb (request-body-callback request)))
                    (when request-body-cb
                      (funcall request-body-cb chunk finishedp)))))
              (finish-callback ()
                ;; make sure we always dispatch at the end.
-               (do-run-hooks (run-hooks :body-complete request)
+               (do-run-hooks (sock) (run-hooks :body-complete request)
                  (dispatch-route))))
       ;; make an HTTP parser. will be attached to the socket and will be
       ;; responsible for running all of the above callbacks directly as data

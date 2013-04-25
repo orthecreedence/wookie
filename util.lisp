@@ -1,5 +1,5 @@
 (defpackage :wookie-util
-  (:use :cl :wookie-config)
+  (:use :cl :wookie-config :cl-async-future)
   (:export #:wlog
            #:map-plist
            #:camel-case
