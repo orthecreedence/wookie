@@ -59,6 +59,19 @@
   "Detects if the given string is an HTTP querystring."
   (cl-ppcre:scan *scanner-querystring-p* querystring))
 
+(defun get-querystring-hash-r (container subkeys val)
+  "Recursively build a tree of hashes based on a given set of subkeys in a query
+   string."
+  (unless subkeys
+    (return-from get-querystring-hash-r val))
+  (let* ((key (car subkeys)))
+    (let ((container (if container
+                         container
+                         (make-hash-table :test #'equal))))
+      (let ((newcontainer (gethash key container)))
+        (setf (gethash key container) (get-querystring-hash-r newcontainer (cdr subkeys) val)))
+      container)))
+
 (defun set-querystring-hash (hash key val)
   "Set the key of a querystring var into a hash, creating as many nested hashes
    as needed. For instance:
@@ -68,20 +81,39 @@
    Would update `myhash` with
      [body] => < hash: [tags] => \"dogs,animals,bark\" >"
   (let* ((subkeys (cl-ppcre:split "(\\]\\[|\\[|\\])" key))
-         (subkeys (remove-if #'null subkeys))
-         (curhash hash))
-    (dotimes (i (length subkeys))
-      (let ((subkey (car subkeys))
-            (is-last (null (cdr subkeys))))
-        (if is-last
-            (progn
-              (setf (gethash subkey curhash) val)
-              (return))
-            (progn
-              (unless (hash-table-p (gethash subkey curhash))
-                (setf (gethash subkey curhash) (make-hash-table :test #'equal)))
-              (setf curhash (gethash subkey curhash)
-                    subkeys (cdr subkeys))))))))
+         (subkeys (remove-if #'null subkeys)))
+    (get-querystring-hash-r hash subkeys val)))
+
+(defun convert-hash-vectors (hash)
+  "Given a hash table, look for all hashes whos keys are a set of indexes
+   starting at zero and convert them to vectors. For instance:
+     {users: {0: 'leonard', 1: 'freddy', 2: 'samuel'}}
+   becomes:
+     {users: ['leonard', 'freddy', 'samuel']}
+
+   This function is recursive."
+  (unless (hash-table-p hash)
+    (return-from convert-hash-vectors hash))
+  (let* ((kv (loop for k being the hash-keys of hash
+                   for v being the hash-values of hash  collect (cons k v)))
+         (kv-length (length kv))
+         (keys-num (remove nil (mapcar (lambda (kv) (ignore-errors (parse-integer (car kv))))
+                                       kv)))
+         (sum (reduce #'+ (mapcar (lambda (x) (1+ x)) keys-num))))
+    (if (and (= (length keys-num) kv-length)
+             (= sum (/ (* kv-length (1+ kv-length)) 2)))
+        ;; we have a vector!
+        (let ((vec (make-array kv-length)))
+          (loop for (nil . v) in kv
+                for idx in keys-num do
+            (setf (aref vec idx) (convert-hash-vectors v)))
+          vec)
+        ;; same old boring hash
+        (progn
+          (loop for k being the hash-keys of hash
+                for v being the hash-values of hash do
+            (setf (gethash k hash) (convert-hash-vectors v)))
+          hash))))
 
 (defun querystring-to-hash (querystring)
   "Convert a querystring into a hash table."
@@ -95,8 +127,8 @@
                (key (car split))
                (val (cadr split))
                (val (do-urlencode:urldecode val :lenientp t :queryp t)))
-          (set-querystring-hash main-hash key val)))
-      main-hash)))
+          (setf main-hash (set-querystring-hash main-hash key val))))
+      (convert-hash-vectors main-hash))))
 
 (defun print-hash (hash-table &optional (indent 0))
   "Useful for debugging hash tables."
