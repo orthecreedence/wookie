@@ -80,72 +80,72 @@
   (when (response-finished-p response)
     (error (make-instance 'response-already-sent :response response)))
   
-  ;; run the response hooks
-  (do-run-hooks ((request-socket (response-request response))) (run-hooks :response-started response (response-request response) status headers body)
-    (let* ((headers (append (response-headers response) headers))
-           (body-enc (when body (babel:string-to-octets body :encoding :utf-8)))
-           (headers (if (and body (not (getf headers :content-length)))
-                        (append headers (list :content-length (length body-enc)))
-                        headers))
-           (request (response-request response))
-           (socket (request-socket request))
-           (status-text (lookup-status-text status)))
-      ;; make writing a single HTTP line a bit less painful
-      (flet ((write-http-line (format-str &rest format-args)
-               (as:write-socket-data
-                 socket
-                 (apply #'format
-                        (append (list nil
-                                      (concatenate 'string format-str "~c~c"))
-                                (append format-args (list #\return #\newline)))))))
-        ;; write the status line
-        (write-http-line "HTTP/1.1 ~a ~a" status status-text)
-        (setf headers (add-default-headers headers))
-        ;; write all the headers
-        (map-plist headers
-                   (lambda (header value)
-                     (let ((header-name (camel-case header)))
-                       (if (listp value)
-                           (dolist (val value)
-                             (write-http-line "~a: ~a" header-name val))
-                           (write-http-line "~a: ~a" header-name value)))))
-        ;; finalize headers (closing \r\n)
-        (write-http-line "")
-        ;; send body if specified
-        (when body
-          (as:write-socket-data socket body-enc)))
+  (let* ((request (response-request response))
+         (socket (request-socket request)))
+    ;; run the response hooks
+    (do-run-hooks (socket) (run-hooks :response-started response request status headers body)
+      (let* ((headers (append (response-headers response) headers))
+             (body-enc (when body (babel:string-to-octets body :encoding :utf-8)))
+             (headers (if (and body (not (getf headers :content-length)))
+                          (append headers (list :content-length (length body-enc)))
+                          headers))
+             (status-text (lookup-status-text status)))
+        ;; make writing a single HTTP line a bit less painful
+        (flet ((write-http-line (format-str &rest format-args)
+                 (as:write-socket-data
+                   socket
+                   (apply #'format
+                          (append (list nil
+                                        (concatenate 'string format-str "~c~c"))
+                                  (append format-args (list #\return #\newline)))))))
+          ;; write the status line
+          (write-http-line "HTTP/1.1 ~a ~a" status status-text)
+          (setf headers (add-default-headers headers))
+          ;; write all the headers
+          (map-plist headers
+                     (lambda (header value)
+                       (let ((header-name (camel-case header)))
+                         (if (listp value)
+                             (dolist (val value)
+                               (write-http-line "~a: ~a" header-name val))
+                             (write-http-line "~a: ~a" header-name value)))))
+          ;; finalize headers (closing \r\n)
+          (write-http-line "")
+          ;; send body if specified
+          (when body
+            (as:write-socket-data socket body-enc)))
 
-      ;; auto-select the best close method, but only if close wasn't specified
-      (unless close-specified-p
-        (let ((request-headers (request-headers request)))
-          (cond
-            ;; we're chunking, so don't close yet
-            ((string= (getf request-headers :transfer-encoding) "chunked")
-             (setf close nil))
-            ;; we got Connection: keep-alive. so, keep-alive...
-            ((string= (getf request-headers :connection) "keep-alive")
-             (setf close nil))
-            ;; we got a Connection: close and we're not chunking. close.
-            ((string= (getf request-headers :connection) "close")
-             (setf close t)))))
+        ;; auto-select the best close method, but only if close wasn't specified
+        (unless close-specified-p
+          (let ((request-headers (request-headers request)))
+            (cond
+              ;; we're chunking, so don't close yet
+              ((string= (getf request-headers :transfer-encoding) "chunked")
+               (setf close nil))
+              ;; we got Connection: keep-alive. so, keep-alive...
+              ((string= (getf request-headers :connection) "keep-alive")
+               (setf close nil))
+              ;; we got a Connection: close and we're not chunking. close.
+              ((string= (getf request-headers :connection) "close")
+               (setf close t)))))
 
-      ;; if we speficied we want to close, do it now
-      (if close
-          ;; close the socket once it's done writing
-          (as:write-socket-data socket nil
-            :write-cb (lambda (socket)
-                        (wlog :debug "(response) Close socket ~a~%" response)
-                        (setf (as:socket-data socket) nil)
-                        (as:close-socket socket)))
-          ;; we sent a response, but aren't closing. reset the parser so that if
-          ;; another request comes in on the same socket, WE'LL BE READY!!!!11one
-          (progn
-            (wlog :debug "(response) Reset parser: ~a~%" response)
-            (setup-parser socket)))
+        ;; if we speficied we want to close, do it now
+        (if close
+            ;; close the socket once it's done writing
+            (as:write-socket-data socket nil
+              :write-cb (lambda (socket)
+                          (wlog :debug "(response) Close socket ~a~%" response)
+                          (setf (as:socket-data socket) nil)
+                          (as:close-socket socket)))
+            ;; we sent a response, but aren't closing. reset the parser so that if
+            ;; another request comes in on the same socket, WE'LL BE READY!!!!11one
+            (progn
+              (wlog :debug "(response) Reset parser: ~a~%" response)
+              (setup-parser socket)))
 
-      ;; mark the response as having been sent
-      (setf (response-finished-p response) t)
-      response)))
+        ;; mark the response as having been sent
+        (setf (response-finished-p response) t)
+        response))))
 
 (defun start-response (response &key (status 200) headers)
   "Start a response to the client, but do not specify body content (or close the
