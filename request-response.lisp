@@ -132,7 +132,7 @@
         ;; if we speficied we want to close, do it now
         (if close
             ;; close the socket once it's done writing
-            (as:write-socket-data socket nil
+            (as:write-socket-data socket (as:bytes nil)
               :write-cb (lambda (socket)
                           (wlog :debug "(response) Close socket ~a~%" response)
                           (setf (as:socket-data socket) nil)
