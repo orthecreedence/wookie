@@ -120,10 +120,14 @@
                             route-path
                             filtered-filepath)))
       (dolist (file files)
-        (let* ((filename (namestring file))
-               (basename (cl-ppcre:regex-replace *scanner-basename*
-                                                 filename
-                                                 "\\1")))
+        (let* ((ext (pathname-type file))
+               (basename (if (cl-fad:directory-exists-p file)
+                             (concatenate 'string
+                                          (car (last (pathname-directory file)))
+                                          "/")
+                             (concatenate 'string
+                                          (pathname-name file)
+                                          (when ext (format nil ".~a" ext))))))
           (write-line (format nil "<li><a href=\"~a~a/~a\">~a</a></li>"
                               route-path
                               filtered-filepath
