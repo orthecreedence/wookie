@@ -12,31 +12,41 @@
          (request (getf socket-data :request))
          (response (getf socket-data :response))
          (handled nil))
-    ;; don't dispatch an EOF on a finished request/response (nobody cares)
+    ;; don't dispatch/log an EOF on a finished request/response (nobody cares)
     (when (and response
                (response-finished-p response)
                (subtypep (type-of event) 'as:tcp-eof))
       (return-from main-event-handler))
-    (wlog :notice "(event) Event ~a~%" event)
 
-    ;; if the event wasn't handled, try some default handling here
-    (unless handled
-      (handler-case (error event)
-        (route-not-found ()
-          (when response
-            (send-response response :status 404 :body "Route for that resource not found =[.")))
-        (wookie-error ()
-          (when response
-            (send-response response
-                           :status 500
-                           :body (format nil "There was an error processing your request: ~a" event))))
-        (as:tcp-eof (e)
-          ;; simple EOF, not much we can do, and we don't want to kill the
-          ;; server for it...
-          (setf (as:socket-data (as:tcp-socket e)) nil))
-        (t ()
-          ;; unhandled. rethrow it.
-          (error event))))))
+    ;; only show as:tcp-info conditions when in :debug logging mode
+    (let ((log-type (if (typep event 'as:tcp-info)
+                        :debug
+                        :notice)))
+      (wlog log-type "(event) Event ~a~%" event))
+
+    (unwind-protect
+      (if (or (functionp *error-handler*)
+              (ignore-errors (symbol-function *error-handler*)))
+          ;; we have an error handler, call it with our error
+          (funcall *error-handler* event)
+
+          ;; no, no error handler, let's do some basic handling of our own
+          (handler-case (error event)
+            (route-not-found ()
+              (when response
+                (send-response response :status 404 :body "Route for that resource not found =[.")))
+            (wookie-error ()
+              (when response
+                (send-response response
+                               :status 500
+                               :body (format nil "There was an error processing your request: ~a" event))))
+            (t ()
+              ;; unhandled, send it packing to the REPL
+              (error event))))
+      ;; no matter what, clear out the data for EOF sockets (poor man's garbage
+      ;; collection)
+      (when (typep error 'as:tcp-eof)
+        (setf (as:socket-data (as:tcp-socket error)) nil)))))
 
 (defun listener-event-handler (ev)
   "A wrapper around main-event-handler, useful for listeners to tie into."
