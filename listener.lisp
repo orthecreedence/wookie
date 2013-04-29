@@ -45,8 +45,9 @@
               (error event))))
       ;; no matter what, clear out the data for EOF sockets (poor man's garbage
       ;; collection)
-      (when (typep error 'as:tcp-eof)
-        (setf (as:socket-data (as:tcp-socket error)) nil)))))
+      (when (and (typep event 'as:tcp-eof)
+                 (typep (as:tcp-socket event) 'as:socket))
+        (setf (as:socket-data (as:tcp-socket event)) nil)))))
 
 (defun listener-event-handler (ev)
   "A wrapper around main-event-handler, useful for listeners to tie into."
