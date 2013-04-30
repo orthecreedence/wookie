@@ -40,6 +40,9 @@
                 (send-response response
                                :status 500
                                :body (format nil "There was an error processing your request: ~a" event))))
+            (as:tcp-eof ()
+              ;; a simple "do nothing"
+              nil)
             (t ()
               ;; unhandled, send it packing to the REPL
               (error event))))
