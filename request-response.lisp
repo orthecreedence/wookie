@@ -89,9 +89,16 @@
   ;; make sure we haven't already responded to this request
   (when (response-finished-p response)
     (error (make-instance 'response-already-sent :response response)))
-  
+
   (let* ((request (response-request response))
          (socket (request-socket request)))
+
+    (when (as:socket-closed-p socket)
+      (error 'as:socket-closed
+             :code -1
+             :msg "Trying to operate on a closed socket"
+             :socket socket))
+  
     ;; run the response hooks
     (do-run-hooks (socket) (run-hooks :response-started response request status headers body)
       (let* ((headers (append (response-headers response) headers))
