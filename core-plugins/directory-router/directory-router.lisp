@@ -106,17 +106,17 @@
                                    (eq (aref file-path 0) #\/))
                                file-path
                                (concatenate 'string "/" file-path))))
-    (flet ((write-line (string)
+    (flet ((write-rline (string)
              (write-sequence (babel:string-to-octets (concatenate 'string string #(#\return #\newline))
                                                      :encoding :utf-8)
                              stream)))
-      (write-line "<html>")
-      (write-line (format nil "<head><title>Index of ~a/</title></head>" file-path))
-      (write-line "<body>")
-      (write-line (format nil "<h1>Index of ~a/</h1>" file-path))
-      (write-line "<ul>")
+      (write-rline "<html>")
+      (write-rline (format nil "<head><title>Index of ~a/</title></head>" file-path))
+      (write-rline "<body>")
+      (write-rline (format nil "<h1>Index of ~a/</h1>" file-path))
+      (write-rline "<ul>")
       (unless (string= (namestring file-path) "")
-        (write-line (format nil "<li><a href=\"~a~a/..\">..</a></li>"
+        (write-rline (format nil "<li><a href=\"~a~a/..\">..</a></li>"
                             route-path
                             filtered-filepath)))
       (dolist (file files)
@@ -128,14 +128,14 @@
                              (concatenate 'string
                                           (pathname-name file)
                                           (when ext (format nil ".~a" ext))))))
-          (write-line (format nil "<li><a href=\"~a~a/~a\">~a</a></li>"
-                              route-path
-                              filtered-filepath
-                              basename
-                              basename))))
-      (write-line "</ul>")
-      (write-line "</body>")
-      (write-line "</html>")
+          (write-rline (format nil "<li><a href=\"~a~a/~a\">~a</a></li>"
+                               route-path
+                               filtered-filepath
+                               basename
+                               basename))))
+      (write-rline "</ul>")
+      (write-rline "</body>")
+      (write-rline "</html>")
       (finish-response response))))
 
 (defun send-file (file-path route-path local-path request response)
