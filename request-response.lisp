@@ -30,6 +30,16 @@
    (chunk-stream :accessor response-chunk-stream :initarg :chunk-stream :initform nil))
   (:documentation "A class holding information about a response to the client."))
 
+(defgeneric get-socket (request/response)
+  (:documentation
+    "Grabs the current socket for the request/response given."))
+
+(defmethod get-socket ((request request))
+  (request-socket request))
+
+(defmethod get-socket ((response response))
+  (get-socket (response-request response)))
+
 (defmacro with-chunking (request (chunk-data last-chunk-p) &body body)
   "Set up a listener for chunked data in a chunk-enabled router. This macro
    takes a request object, the names of the chunk-data/finishedp arguments

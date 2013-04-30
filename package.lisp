@@ -41,6 +41,7 @@
            #:response
            #:response-headers
            #:response-finished-p
+           #:get-socket
            #:with-chunking
            #:send-response
            #:start-response
