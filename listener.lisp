@@ -219,7 +219,11 @@
 
 (defmethod start-server ((listener listener))
   ;; start the async server
-  (wlog :notice "(start) Starting Wookie~%")
+  (wlog :notice "(start) Starting Wookie  ~a:~a~%"
+        (if (listener-bind listener)
+            (listener-bind listener)
+            "0.0.0.0")
+        (listener-port listener))
   (as:tcp-server (listener-bind listener) (listener-port listener)
     'read-data
     'listener-event-handler

@@ -8,6 +8,11 @@
 
 (defmethod start-server ((listener ssl-listener))
   ;; start the async SSL server
+  (wlog :notice "(start) Starting Wookie (SSL): ~a:~a~%"
+        (if (listener-bind listener)
+            (listener-bind listener)
+            "0.0.0.0")
+        (listener-port listener))
   (as-ssl:tcp-ssl-server (listener-bind listener) (listener-port listener)
     'read-data
     'listener-event-handler
