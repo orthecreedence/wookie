@@ -18,11 +18,14 @@ Wookie requires git versions of: [cl-libevent2](https://github.com/orthecreedenc
 
 Documentation
 -------------
-Wookie's documentation lives on [the Wookie website](http://orthecreedence.github.com/wookie).
-It's a work in progress, but should take shape at a steady pace.
+Wookie has a finished and up-to-date documentation website, but it is currently
+not online anywhere. I don't have the cash right now to throw up another $20
+VPS, so until I do, you're stuck with the outdated examples below and the source
+code.
 
 Example(s)
 ----------
+Please note that I wronte these examples months ago and they may be out of date.
 ```common-lisp
 (defpackage :wookie-test
   (:use :cl :wookie-plugin-export))
