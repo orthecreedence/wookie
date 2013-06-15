@@ -16,11 +16,11 @@ Wookie requires git versions of: [cl-libevent2](https://github.com/orthecreedenc
 [cl-async](https://github.com/orthecreedence/cl-async), [http-parse](https://github.com/orthecreedence/http-parse) 
 <br><br><br><br>
 
-[Documentation](http://wookie.beeets.com)
+[Documentation](http://wookie.beeets.com/docs)
 -----------------------------------------
 I finally decided to get the Wookie doc site up and running. Not only does it
 document Wookie, but it's built on top of Wookie and can be used for reference
-[by browsing the source](/orthecreedence/wookie-doc).
+[by browsing the source](https://github.com/orthecreedence/wookie-doc).
 
 License
 -------
