@@ -24,7 +24,7 @@ document Wookie, but it's built on top of Wookie and can be used for reference
 
 License
 -------
-Wookie is dual-licensed under Wookie-MIT (under the terms that you swear
+Wookie is dual-licensed under Wookie-MIT (MIT under the terms that you swear
 unconditional compliance and servitude to the dog, Wookie, and accept him as
 your king) and vanilla MIT (see the LICENSE file).
 
