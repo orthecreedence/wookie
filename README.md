@@ -1,8 +1,10 @@
 Wookie
 ======
+<!--
 <img src="http://orthecreedence.github.com/wookie/wookie-smile_small.jpg"
      alt="Wookie accepts our servitude."
      align="left" />
+-->
 Wookie is an asynchronous HTTP server written in common lisp. It is in beta at
 the moment. Wookie is named after my dog who is extremely tempermental, 
 image-conscious, and makes sounds like a wookie when you squeeze him. He views
