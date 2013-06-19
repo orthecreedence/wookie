@@ -16,7 +16,9 @@ divergent turn and is now its own project.
 
 Wookie requires git versions of: [cl-libevent2](https://github.com/orthecreedence/cl-libevent2),
 [cl-async](https://github.com/orthecreedence/cl-async), [http-parse](https://github.com/orthecreedence/http-parse) 
+<!--
 <br><br><br><br>
+-->
 
 [Documentation](http://wookie.beeets.com/docs)
 -----------------------------------------
