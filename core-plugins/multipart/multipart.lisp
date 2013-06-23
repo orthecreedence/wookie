@@ -95,7 +95,7 @@
   "Get a value from the multipart data by its field name (string)."
   (let* ((plugin-data (plugin-request-data :multipart request))
          (hash-form-vars (getf plugin-data :hash-form)))
-    (when hash-form-vars
+    (when (and hash-form-vars (hash-table-p hash-form-vars))
       (gethash field-name hash-form-vars))))
 
 (defplugfun file-upload (request field-name)
@@ -103,7 +103,7 @@
    plist with the keys :filename, :tmp-file, and :mime-type."
   (let* ((plugin-data (plugin-request-data :multipart request))
          (hash-form-vars (getf plugin-data :hash-file)))
-    (when hash-form-vars
+    (when (and hash-form-vars (hash-table-p hash-form-vars))
       (gethash field-name hash-form-vars))))
 
 (defun init-multipart-vars ()

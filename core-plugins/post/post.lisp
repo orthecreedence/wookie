@@ -26,7 +26,7 @@
 (defplugfun post-var (request key)
   "Get a value from the POST data by key."
   (let ((hash-post-vars (plugin-request-data :post request)))
-    (when hash-post-vars
+    (when (and hash-post-vars (hash-table-p hash-post-vars))
       (gethash key hash-post-vars))))
 
 (defun init-post-vars ()

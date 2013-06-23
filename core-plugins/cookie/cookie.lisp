@@ -22,7 +22,8 @@
 (defplugfun cookie-var (request key)
   "Get a value from the Cookie data by key."
   (let ((hash-cookie-vars (plugin-request-data :cookie request)))
-    (gethash key hash-cookie-vars)))
+    (when (and hash-cookie-vars (hash-table-p hash-cookie-vars))
+      (gethash key hash-cookie-vars))))
 
 (defplugfun set-cookie (response key val &key expires max-age path domain http-only secure)
   "Update the headers for a response to set a cookie."
