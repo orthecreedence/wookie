@@ -54,7 +54,13 @@
     (unless (find-if (lambda (ex)
                        (eq (getf ex :fn) (getf route :fn)))
                      exclude)
-      (when (and (eq (getf route :method) method)
+      (when (and (let ((route-method (getf route :method)))
+                   ;; test for a list of methods as well as exact method match.
+                   ;; also allow wildcard method match via :*
+                   (if (listp route-method)
+                       (find method route-method)
+                       (or (eq method route-method)
+                           (eq :* route-method))))
                  (or (not (getf route :vhost))
                      ;; either exact match the host or match without portnum
                      (or (equal (getf route :vhost) host)
@@ -125,7 +131,11 @@
                         bind-args
                         (progn
                           (setf ignore-bind-args t)
-                          (gensym)))))
+                          (gensym))))
+         ;; allow method to be a list of keywords
+         (method (if (listp method)
+                     `(list ,@method)
+                     method)))
     `(let ((,new-route (make-route ,method ,resource
                                    (lambda (,bind-request ,bind-response &rest ,bind-args)
                                      (declare (ignorable ,bind-request))
