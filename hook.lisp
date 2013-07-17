@@ -31,15 +31,24 @@
   (wlog :debug "(hook) Run ~s (~a)~%" hook args)
   (let ((future (make-future))
         (hooks (gethash hook *hooks*))
-        (collected-futures nil))  ; holds futures returned from hook functions
+        (collected-futures nil)   ; holds futures returned from hook functions
+        (last-hook nil))
     (handler-case
       (dolist (hook hooks)
+        ;; track current hook for better error verbosity
+        (setf last-hook hook)
         ;; see if a future was returned from the hook function. if so, save it.
         (let ((ret (apply (getf hook :function) args)))
           (when (futurep ret)
             (push ret collected-futures))))
       ((or error simple-error) (e)
-       (wlog :error "(hook) Caught error while running hooks: ~a~%" e)
+       (let* ((hook-name (getf last-hook :name))
+              (hook-type hook)
+              (hook-id-str (format nil "~s" hook-type))
+              (hook-id-str (if hook-name
+                               (concatenate 'string hook-id-str (format nil " (~s)" hook-name))
+                               hook-id-str)))
+         (wlog :error "(hook) Caught error while running hooks: ~a: ~a~%" hook-id-str e))
        (signal-error future e)
        (return-from run-hooks future)))
 
