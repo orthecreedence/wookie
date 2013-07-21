@@ -47,15 +47,19 @@
    route from the available options."
   (error 'use-next-route))
 
-(alexandria:define-constant +port-range-start+ 0)
-(alexandria:define-constant +port-range-end+ (1- (expt 2 16)))
+(alexandria:define-constant +port-range-start+ 0
+  :documentation
+  "The minimum number that a port can have.")
+(alexandria:define-constant +port-range-end+ (1- (expt 2 16))
+  :documentation
+  "The maximum number that a port can have.")
 
 (defun valid-port-p (host)
-  "Takes a resource (URL) and checks if it has a valid port (i.e an integer (inclusive) between 0 and 65535."
+  "Takes a resource (URL) and checks if it has a valid port after the last #\:."
   (let ((pos (position #\: host :from-end t)))
     (> +port-range-end+
-       (handler-case (parse-integer (subseq host pos))
-         (t () -1)) ;; If the input to `parse-integer' is mangled, just return an invalid port number
+       (handler-case (parse-integer (subseq host (1+ pos))) ; 1+ to not include the #\:
+         (t () -1)) ; If the input to `parse-integer' is mangled, just return an invalid port number
        +port-range-start+)))
 
 (defun find-route (method resource &key exclude host)
