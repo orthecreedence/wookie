@@ -120,6 +120,7 @@
   (let* ((main-hash (make-hash-table :test #'equal)))
     (unless querystring (return-from querystring-to-hash main-hash))
     (let* ((querystring (cl-ppcre:regex-replace-all "(^[?&]+|&+$)" querystring ""))
+           (querystring (cl-ppcre:regex-replace-all "&+" querystring "&"))
            (parts (cl-ppcre:split "&(?!amp;)" querystring))
            (parts (remove-if #'null parts)))
       (dolist (part parts)
