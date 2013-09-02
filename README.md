@@ -1,6 +1,6 @@
 Wookie
 ======
-<img src="http://orthecreedence.github.com/wookie/wookie-smile_small.jpg"
+<img src="http://wookie.beeets.com/images/wookie/wookie-smile_small.jpg"
      alt="Wookie is pleased. We shall prosper."
      align="left" />
 Wookie is an asynchronous HTTP server written in common lisp. It is in beta at
