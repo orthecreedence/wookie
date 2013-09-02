@@ -1,6 +1,6 @@
 Wookie
 ======
-<img src="http://wookie.beeets.com/images/wookie/wookie-smile_small.jpg"
+<img src="http://wookie.beeets.com/images/wookie/wookie-smile_small.jpg?1"
      alt="Wookie is pleased. We shall prosper."
      align="left" />
 Wookie is an asynchronous HTTP server written in common lisp. It is in beta at
@@ -11,8 +11,6 @@ of existing on the same planet as us. This project is dedicated to him.
 
 Originally, the goal was to port Hunchentoot to async, but Wookie took a
 divergent turn and is now its own project.
-
-<br><br><br><br>
 
 [Documentation](http://wookie.beeets.com/docs)
 -----------------------------------------
