@@ -1,10 +1,8 @@
 Wookie
 ======
-<!--
 <img src="http://orthecreedence.github.com/wookie/wookie-smile_small.jpg"
-     alt="Wookie accepts our servitude."
+     alt="Wookie is pleased. We shall prosper."
      align="left" />
--->
 Wookie is an asynchronous HTTP server written in common lisp. It is in beta at
 the moment. Wookie is named after my dog who is extremely tempermental, 
 image-conscious, and makes sounds like a wookie when you squeeze him. He views
@@ -14,11 +12,7 @@ of existing on the same planet as us. This project is dedicated to him.
 Originally, the goal was to port Hunchentoot to async, but Wookie took a
 divergent turn and is now its own project.
 
-Wookie requires git versions of: [cl-libevent2](https://github.com/orthecreedence/cl-libevent2),
-[cl-async](https://github.com/orthecreedence/cl-async), [http-parse](https://github.com/orthecreedence/http-parse) 
-<!--
 <br><br><br><br>
--->
 
 [Documentation](http://wookie.beeets.com/docs)
 -----------------------------------------
