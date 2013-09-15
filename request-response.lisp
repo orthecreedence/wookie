@@ -84,7 +84,7 @@
    and determine whether or not the connection should be closed. Unless you have
    a reason to specify :close, it may be best to leave it blank."
   (wlog :info "(response) ~a ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)~%"
-        request response status close
+        (response-request response) response status close
         headers (length body))
   ;; make sure we haven't already responded to this request
   (when (response-finished-p response)
