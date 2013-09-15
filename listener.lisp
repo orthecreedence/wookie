@@ -137,6 +137,11 @@
                       (parsed-uri (puri:parse-uri resource))
                       (path (do-urlencode:urldecode (puri:uri-path parsed-uri) :lenientp t))
                       (host (getf headers :host)))
+                 (wlog :info "(request) ~a ~s ~a ~a~%"
+                       request
+                       method
+                       resource
+                       (if host (concatenate 'string "(" host ")") ""))
                  (setf route-path path)
                  ;; save the parsed uri for plugins/later code
                  (setf (request-uri request) parsed-uri

@@ -83,9 +83,9 @@
    sent fully. However, send-response does its best to read the request headers
    and determine whether or not the connection should be closed. Unless you have
    a reason to specify :close, it may be best to leave it blank."
-  (wlog :debug "(response) Send response ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)~%"
-                    response status close
-                    headers (length body))
+  (wlog :info "(response) ~a ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)~%"
+        request response status close
+        headers (length body))
   ;; make sure we haven't already responded to this request
   (when (response-finished-p response)
     (error (make-instance 'response-already-sent :response response)))
