@@ -30,7 +30,6 @@
                (when route-dispatched
                  (return-from dispatch-route))
                (setf route-dispatched t)
-               (run-hooks :pre-route request response)
                (do-run-hooks (sock) (run-hooks :pre-route request response)
                  (flet ((run-route (route)
                           (if route
