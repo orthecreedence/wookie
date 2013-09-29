@@ -28,7 +28,7 @@
    info against your database, finishing the future it returns only when the
    database has responded. Once the future is finished, then Wookie will
    continue processing the request."
-  (wlog :debug "(hook) Run ~s (~a)~%" hook args)
+  (wlog :debug "(hook) Run ~s~%" hook)
   (let ((future (make-future))
         (hooks (gethash hook *hooks*))
         (collected-futures nil)   ; holds futures returned from hook functions

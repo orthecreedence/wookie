@@ -209,7 +209,7 @@
   "A simple read-cb handler that passed data to the HTTP parser attached to the
    socket the data is coming in on. The parser runs all necessary callbacks
    directly, so this function just blindly feeds the data in."
-  (wlog :debug "(read) ~a: ~a~%" sock (babel:octets-to-string data))
+  (wlog :debug "(read) ~a: ~a bytes~%" sock (length data))
   ;; grab the parser stored in the socket and pipe the data into it
   (let ((parser (getf (as:socket-data sock) :parser)))
     (funcall parser data)))

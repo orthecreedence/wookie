@@ -50,9 +50,9 @@
    chunk from the request is being sent in."
   `(setf (request-body-callback ,request)
          (lambda (,chunk-data ,last-chunk-p)
-           (wlog :debug "(chunk) Got chunk (~a) ~a~%"
+           (wlog :debug "(chunk) Got chunk (~a) ~a bytes~%"
                              ,last-chunk-p
-                             (babel:octets-to-string ,chunk-data))
+                             (length ,chunk-data))
            ,@body)))
 
 (defun add-default-headers (headers)
