@@ -96,9 +96,8 @@
                      ;; handle "Expect: 100-continue" properly
                      (when (string= (getf headers :expect) "100-continue")
                        (if found-route
-                           (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
-                                                              #\return #\newline #\return #\newline))
-
+                           (unless (getf route :suppress-100)
+                             (send-100-continue response))
                            (progn
                              (funcall 'main-event-handler (make-instance 'route-not-found :resource route-path :socket sock)
                                                           sock)

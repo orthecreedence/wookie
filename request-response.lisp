@@ -215,3 +215,9 @@
                     (as:close-socket socket)))))
   response)
 
+(defun send-100-continue (response)
+  "Send a 100 Continue header on the given response object."
+  (let ((sock (request-socket (response-request response))))
+    (as:write-socket-data sock (format nil "HTTP/1.1 100 Continue~c~c~c~c"
+                                       #\return #\newline #\return #\newline))))
+

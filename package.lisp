@@ -46,6 +46,7 @@
            #:send-response
            #:start-response
            #:finish-response
+           #:send-100-continue
 
            #:*enabled-plugins*
            #:*plugin-folders*
