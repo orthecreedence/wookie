@@ -91,7 +91,8 @@
        (future-handler-case
          (wait-for ,run-hook-cmd
            ,@body)
-         (error ()
+         (error (e)
+           (wlog :error "(hook) Error running hooks (socket ~a): ~a~%" ,socket e)
            (if (as:socket-closed-p ,sock)
                ;; clear out the socket's data, just in case
                (setf (as:socket-data ,sock) nil)
