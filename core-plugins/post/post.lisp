@@ -6,7 +6,10 @@
   "Check if this request contains POST data, and mark the plugin data as such so
    once we have body data we know whether or not to try and parse it."
   (let ((headers (request-headers request)))
-    (when (search "application/x-www-form-urlencoded" (getf headers :content-type))
+    ;; only parse the post vars if we have form data and we're not chunking
+    ;; (storing the HTTP body while chunking can seriously cripple performance)
+    (when (and (search "application/x-www-form-urlencoded" (getf headers :content-type))
+               (not (string= (string-downcase (getf headers :transfer-encoding)) "chunked")))
       ;; make sure we store the body so we can access it once it uploads
       (setf (http-parse:http-store-body (request-http request)) t)
       ;; setting T here lets the `parse-post-vars` fn know that we're dealing
