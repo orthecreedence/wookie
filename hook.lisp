@@ -93,6 +93,7 @@
            ,@body)
          (error (e)
            (wlog :error "(hook) Error running hooks (socket ~a): ~a~%" ,socket e)
+           (main-event-handler e ,socket)
            (if (as:socket-closed-p ,sock)
                ;; clear out the socket's data, just in case
                (setf (as:socket-data ,sock) nil)
