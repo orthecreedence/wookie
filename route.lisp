@@ -89,7 +89,6 @@
   "Add a new route to the table. If a route already exists with the same method
    and resource string, it is replaced with the new one in the same position the 
    old route existed in (as to preserve routing order)."
-  (wlog :debug "(route) Upsert ~s~%" new-route)
   (let ((route-found nil)
         (resource-str (getf new-route :resource-str) )
         (method (getf new-route :method)))
