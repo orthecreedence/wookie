@@ -83,7 +83,7 @@
 (defun add-route (new-route)
   "Add a new route to the table."
   (vector-push-extend new-route *routes*)
-  *routes*)
+  (length *routes*))
 
 (defun upsert-route (new-route)
   "Add a new route to the table. If a route already exists with the same method
@@ -103,7 +103,7 @@
           (return))))
     (unless route-found
       (vector-push-extend new-route *routes*))
-    *routes*))
+    (length *routes*)))
 
 (defun clear-route (method resource-str)
   "Clear out a route in the routing table."
@@ -113,7 +113,7 @@
                                    (string= (getf route :resource-str) resource-str)))
                             *routes*)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk suppress-100 replace (vhost '*default-vhost*))
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk suppress-100 (replace t) (vhost '*default-vhost*))
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list.
@@ -148,7 +148,9 @@
                                    :allow-chunking ,chunk
                                    :suppress-100 ,suppress-100
                                    :vhost ,vhost)))
-       (add-route ,new-route))))
+       (if ,replace
+           (upsert-route ,new-route)
+           (add-route ,new-route)))))
 
 (defmacro with-vhost (host &body body)
   "Simple wrapper that makes all defroutes in the body bind to a specific vhost:
