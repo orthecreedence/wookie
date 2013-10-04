@@ -97,6 +97,7 @@
   "Load the ASDF plugins and resolve all of their dependencies. Kind of an
    unfortunate name. Will probably be renamed."
   (macrolet ((load-system (system &key use-quicklisp)
+               ;; FUCK the system
                (if (and use-quicklisp (find-package :ql))
                    (list (intern "QUICKLOAD" :ql) system)
                    `(asdf:oos 'asdf:load-op ,system))))
