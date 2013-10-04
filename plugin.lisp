@@ -96,11 +96,10 @@
 (defun resolve-dependencies (&key ignore-loading-errors (use-quicklisp t))
   "Load the ASDF plugins and resolve all of their dependencies. Kind of an
    unfortunate name. Will probably be renamed."
-  (flet ((load-system (system)
-           ;; FUCK the system
-           (if use-quicklisp
-               (ql:quickload system)
-               (asdf:oos 'asdf:load-op system))))
+  (macrolet ((load-system (system &key use-quicklisp)
+               (if (and use-quicklisp (find-package :ql))
+                   (list (intern "QUICKLOAD" :ql) system)
+                   `(asdf:oos 'asdf:load-op ,system))))
     ;; make asdf/quicklisp shutup when loading. we're logging all this junk
     ;; newayz so nobody wants to see that shit
     (let* ((*log-output* *standard-output*)
@@ -113,7 +112,7 @@
             (let ((asdf-system (getf *available-plugins* enabled)))
               (when asdf-system
                 (wlog :debug "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
-                (handler-case (load-system asdf-system)
+                (handler-case (load-system asdf-system :use-quicklisp use-quicklisp)
                   ((or quicklisp-client::system-not-found
                        asdf::missing-component) (e)
                     (wlog :warning "(plugin) Failed to load dependency for ~s (~s)~%"
@@ -131,7 +130,7 @@
                      :version "1.0.0"
                      :description "An auto-generated ASDF system that helps make loading plugins fast."
                      :depends-on ,asdf-list))
-            (load-system :wookie-plugin-load-system))))))
+            (load-system :wookie-plugin-load-system :use-quicklisp use-quicklisp))))))
 
 (defun match-plugin-asdf (plugin-name asdf-system)
   "Match a plugin and an ASDF system toeach other."
