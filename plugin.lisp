@@ -96,11 +96,24 @@
 (defun resolve-dependencies (&key ignore-loading-errors (use-quicklisp t))
   "Load the ASDF plugins and resolve all of their dependencies. Kind of an
    unfortunate name. Will probably be renamed."
+  ;; note that these are macros to fix some dependency issues when building
+  ;; Wookie on some systems (that don't have quicklisp). TBH they could probably
+  ;; be functions. oh well.
   (macrolet ((load-system (system &key use-quicklisp)
                ;; FUCK the system
                (if (and use-quicklisp (find-package :ql))
                    (list (intern "QUICKLOAD" :ql) system)
-                   `(asdf:oos 'asdf:load-op ,system))))
+                   `(asdf:oos 'asdf:load-op ,system)))
+             (load-system-with-handler (system &key use-quicklisp)
+               `(handler-case
+                  (load-system ,system :use-quicklisp ,use-quicklisp)
+                  ((or ,(when (find-package :quicklisp-client)
+                          (intern "SYSTEM-NOT-FOUND" :quicklisp-client))
+                       asdf::missing-component) (e)
+                    (wlog :warning "(plugin) Failed to load dependency for ~s (~s)~%"
+                          asdf-system
+                          ,(when (find-package :quicklisp-client)
+                             (list (intern "SYSTEM-NOT-FOUND-NAME" :quicklisp-client) 'e)))))))
     ;; make asdf/quicklisp shutup when loading. we're logging all this junk
     ;; newayz so nobody wants to see that shit
     (let* ((*log-output* *standard-output*)
@@ -113,12 +126,7 @@
             (let ((asdf-system (getf *available-plugins* enabled)))
               (when asdf-system
                 (wlog :debug "(plugin) Loading plugin ASDF ~s and deps~%" asdf-system)
-                (handler-case (load-system asdf-system :use-quicklisp use-quicklisp)
-                  ((or quicklisp-client::system-not-found
-                       asdf::missing-component) (e)
-                    (wlog :warning "(plugin) Failed to load dependency for ~s (~s)~%"
-                                        asdf-system
-                                        (quicklisp-client::system-not-found-name e)))))))
+                (load-system-with-handler asdf-system :use-quicklisp use-quicklisp))))
 
           ;; create an asdf system that houses all the enabled plugins as deps, then
           ;; load it (a lot faster than individually loading each asdf system).
