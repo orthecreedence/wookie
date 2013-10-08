@@ -1,7 +1,7 @@
 (asdf:defsystem wookie
   :author "Andrew Danger Lyon <orthecreedence@gmail.com>"
   :license "MIT"
-  :version "0.3.0"
+  :version "0.3.1"
   :description "An evented webserver for Common Lisp."
   :depends-on (#:alexandria
                #:cl-async-future
@@ -15,7 +15,7 @@
                #:local-time
                #:do-urlencode
                #:cl-fad
-               #:zsort)
+               #:flexi-streams)
   :components
   ((:file "config")
    (:file "util" :depends-on ("config"))
