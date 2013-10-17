@@ -23,7 +23,7 @@
     (let ((log-type (if (typep event 'as:tcp-info)
                         :debug
                         :notice)))
-      (wlog log-type "(event) Event ~a~%" event))
+      (wlog log-type "(event) ~a (~a)~%" event socket))
 
     (unwind-protect
       (if (or (functionp *error-handler*)
