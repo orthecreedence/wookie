@@ -136,9 +136,14 @@
          ;; allow method to be a list of keywords
          (method (if (listp method)
                      `(list ,@method)
-                     method)))
+                     method))
+         (docstring (when (stringp (car body)) (car body)))
+         (body (if docstring
+                   (cdr body)
+                   body)))
     `(let ((,new-route (make-route ,method ,resource
                                    (lambda (,bind-request ,bind-response &rest ,bind-args)
+                                     ,(or docstring "")
                                      (declare (ignorable ,bind-request))
                                      ,(when ignore-bind-args
                                         `(declare (ignore ,bind-args)))
