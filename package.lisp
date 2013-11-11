@@ -5,6 +5,13 @@
 
            #:*hide-version*
            #:*tmp-file-store*
+
+           #:wookie-state
+           #:wookie-state-hooks
+           #:wookie-state-plugins
+           #:wookie-state-plugin-config
+           #:wookie-state-routes
+           #:*state*
            
            #:wookie-error
            #:wookie-error-msg
