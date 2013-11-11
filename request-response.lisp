@@ -9,6 +9,9 @@
   (:report (lambda (c s) (format s "Response already sent: ~a" (response-error-response c))))
   (:documentation "Triggered when a response is attempted more than once."))
 
+(defparameter *wookie-version* (asdf:component-version (asdf:find-system :wookie))
+  "Holds Wookie's current version.")
+
 (defclass request ()
   ((socket :accessor request-socket :initarg :socket :initform nil)
    (method :accessor request-method :initarg :method :initform :get)
@@ -70,9 +73,7 @@
     (prepend-header-if-not-exists :server
                                   (if *hide-version*
                                       "Wookie"
-                                      (format nil "Wookie (~a)"
-                                              (asdf:component-version
-                                                (asdf:find-system :wookie))))))
+                                      (format nil "Wookie (~a)" *wookie-version*))))
   headers)
 
 (defun send-response (response &key (status 200) headers body (close nil close-specified-p))
