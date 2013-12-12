@@ -52,7 +52,7 @@
     lower))
 
 (defparameter *scanner-querystring-p*
-  (cl-ppcre:create-scanner "^([a-z-_\\[\\]]+(=[^&]+)?(&|$))+" :case-insensitive-mode t)
+  (cl-ppcre:create-scanner "^([a-z0-9-_\\[\\]]+(=([^&]+)?)?(&+|$))+" :case-insensitive-mode t)
   "Detects a querystring.")
 
 (defun querystringp (querystring)

@@ -24,7 +24,8 @@
     (let* ((headers (request-headers request))
            (body (body-to-string (http-parse:http-body (request-http request))
                                  (getf headers :content-type))))
-      (setf (plugin-request-data :post request) (querystring-to-hash body)))))
+      (when (querystringp body)
+        (setf (plugin-request-data :post request) (querystring-to-hash body))))))
 
 (defplugfun post-var (request key)
   "Get a value from the POST data by key."
