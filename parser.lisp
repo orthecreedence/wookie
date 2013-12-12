@@ -47,9 +47,11 @@
                                   (when (and (getf route :allow-chunking)
                                              (getf route :buffer-body)
                                              body-buffer
-                                             body-finished-p
-                                             request-body-cb)
-                                    (funcall request-body-cb (flex:get-output-stream-sequence body-buffer) t))))
+                                             body-finished-p)
+                                    (let ((body (flex:get-output-stream-sequence body-buffer)))
+                                      (if request-body-cb
+                                          (funcall request-body-cb body t)
+                                          (setf (request-body-callback-setcb request) (lambda (body-cb) (funcall body-cb body t))))))))
                               (progn
                                 (wlog :notice "(route) Missing route: ~s~%" route)
                                 (funcall 'main-event-handler (make-instance 'route-not-found

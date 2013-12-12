@@ -21,6 +21,7 @@
    (data :accessor request-data :initarg :data :initform nil)
    (plugin-data :accessor request-plugin-data :initarg :plugin-data :initform nil)
    (body-callback :accessor request-body-callback :initarg :body-callback :initform nil)
+   (body-callback-setcb :accessor request-body-callback-setcb :initarg :body-callback-setcb :initform nil)
    (http :accessor request-http :initarg :http :initform nil)
    (error-handlers :accessor request-error-handlers :initarg :error-handlers :initform nil)
    (error-precedence :accessor request-error-precedence :initarg :error-precedence :initform nil))
@@ -51,12 +52,18 @@
    Chunk-data is a byte-array of data received as decoded chunked data comes in
    from the client, and last-chunk-p is a boolean indicating whether the last
    chunk from the request is being sent in."
-  `(setf (request-body-callback ,request)
-         (lambda (,chunk-data ,last-chunk-p)
-           (wlog :debug "(chunk) Got chunk (~a) ~a bytes~%"
-                             ,last-chunk-p
-                             (length ,chunk-data))
-           ,@body)))
+  (let ((request-var (gensym "request")))
+    `(progn
+       (let ((,request-var ,request))
+         (setf (request-body-callback ,request-var)
+               (lambda (,chunk-data ,last-chunk-p)
+                 (wlog :debug "(chunk) Got chunk (~a) ~a bytes~%"
+                                   ,last-chunk-p
+                                   (length ,chunk-data))
+                 ,@body))
+         (when (request-body-callback-setcb ,request-var)
+           (funcall (request-body-callback-setcb ,request-var) (request-body-callback ,request-var))
+           (setf (request-body-callback-setcb ,request-var) nil))))))
 
 (defun add-default-headers (headers)
   "Add a number of default headers to a headers plist. If one of the default
