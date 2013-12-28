@@ -15,7 +15,8 @@
                #:local-time
                #:do-urlencode
                #:cl-fad
-               #:flexi-streams)
+               #:flexi-streams
+               #:log4cl)
   :components
   ((:file "config")
    (:file "util" :depends-on ("config"))

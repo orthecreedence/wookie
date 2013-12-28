@@ -2,9 +2,9 @@
 
 (defun clear-hooks (&optional hook)
   "Clear all hooks (default) or optionally a specific hook type."
-  (wlog :debug "(hook) Clearing ~a~%" (if hook
-                                          (format nil "hook ~s~%" hook)
-                                          "all hooks"))
+  (log:debug "(hook) Clearing ~a" (if hook
+                                      (format nil "hook ~s" hook)
+                                      "all hooks"))
   (if hook
       (setf (gethash hook (wookie-state-hooks *state*)) nil)
       (setf (wookie-state-hooks *state*) (make-hash-table :size 10 :test #'eq))))
@@ -26,7 +26,7 @@
    info against your database, finishing the future it returns only when the
    database has responded. Once the future is finished, then Wookie will
    continue processing the request."
-  (wlog :debug "(hook) Run ~s~%" hook)
+  (log:debug "(hook) Run ~s" hook)
   (let ((future (make-future))
         (hooks (gethash hook (wookie-state-hooks *state*)))
         (collected-futures nil)   ; holds futures returned from hook functions
@@ -46,7 +46,7 @@
               (hook-id-str (if hook-name
                                (concatenate 'string hook-id-str (format nil " (~s)" hook-name))
                                hook-id-str)))
-         (wlog :error "(hook) Caught error while running hooks: ~a: ~a~%" hook-id-str e))
+         (log:error "(hook) Caught error while running hooks: ~a: ~a" hook-id-str e))
        (signal-error future e)
        (return-from run-hooks future)))
 
@@ -72,7 +72,7 @@
             ;; catch any errors while processing and forward them to the hook
             ;; runner
             ((or error simple-error) (e)
-              (wlog :debug "(hook) Caught future error processing hook ~a (~a)~%" hook (type-of e))
+              (log:debug "(hook) Caught future error processing hook ~a (~a)" hook (type-of e))
               (signal-error future e)
               ;; clear out all callbacks/errbacks/values/etc. essentially, this
               ;; future and anything it references is gone forever.
@@ -90,7 +90,7 @@
          (wait-for ,run-hook-cmd
            ,@body)
          (error (e)
-           (wlog :error "(hook) Error running hooks (socket ~a): ~a~%" ,socket e)
+           (log:error "(hook) Error running hooks (socket ~a): ~a" ,socket e)
            (main-event-handler e ,socket)
            (if (as:socket-closed-p ,sock)
                ;; clear out the socket's data, just in case
@@ -102,9 +102,9 @@
 (defun add-hook (hook function &optional hook-name)
   "Add a hook into the wookie system. Hooks will be run in the order they were
    added."
-  (wlog :debug "(hook) Adding hook ~s ~a~%" hook (if hook-name
-                                                          (format nil "(~s)" hook-name)
-                                                          ""))
+  (log:debug "(hook) Adding hook ~s ~a" hook (if hook-name
+                                                 (format nil "(~s)" hook-name)
+                                                 ""))
   ;; append instead of push since we want them to run in the order they were added
   (alexandria:appendf (gethash hook (wookie-state-hooks *state*))
                       (list (list :function function :name hook-name))))
@@ -114,7 +114,7 @@
    name given at add-hook."
   (when (and function/hook-name
              (gethash hook (wookie-state-hooks *state*)))
-    (wlog :debug "(hook) Remove hook ~s~%" hook)
+    (log:debug "(hook) Remove hook ~s" hook)
     (let ((new-hooks (remove-if
                        (lambda (hook)
                          (let ((fn (getf hook :function))

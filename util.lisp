@@ -15,14 +15,6 @@
 (defvar *tmp-file-counter* 0
   "Holds a value that is incremented for each temporary file generated.")
 
-(defun wlog (level format-string &rest format-args)
-  "Wookie's logging function. simple for now, just sends to STDOUT."
-  (when (<= (getf +log-levels+ level) (getf +log-levels+ *log-level*))
-    (let ((output (if *log-output*
-                      *log-output*
-                      t)))
-      (apply #'format (append (list output format-string) format-args)))))
-  
 (defun map-plist (plist fn)
   "Iterate over a plist"
   (let ((result nil))

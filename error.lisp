@@ -20,10 +20,9 @@
       (return-from main-event-handler))
 
     ;; only show as:tcp-info conditions when in :debug logging mode
-    (let ((log-type (if (typep event 'as:tcp-info)
-                        :debug
-                        :notice)))
-      (wlog log-type "(event) ~a (~a)~%" event socket))
+    (if (typep event 'as:tcp-info)
+        (log:debug "(event) ~a (~a)" event socket)
+        (log:info "(event) ~a (~a)" event socket))
 
     (unwind-protect
       (if (or (functionp *error-handler*)

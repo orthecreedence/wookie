@@ -57,9 +57,9 @@
        (let ((,request-var ,request))
          (setf (request-body-callback ,request-var)
                (lambda (,chunk-data ,last-chunk-p)
-                 (wlog :debug "(chunk) Got chunk (~a) ~a bytes~%"
-                                   ,last-chunk-p
-                                   (length ,chunk-data))
+                 (log:debug "(chunk) Got chunk (~a) ~a bytes"
+                            ,last-chunk-p
+                            (length ,chunk-data))
                  ,@body))
          (when (request-body-callback-setcb ,request-var)
            (funcall (request-body-callback-setcb ,request-var) (request-body-callback ,request-var))
@@ -91,9 +91,9 @@
    sent fully. However, send-response does its best to read the request headers
    and determine whether or not the connection should be closed. Unless you have
    a reason to specify :close, it may be best to leave it blank."
-  (wlog :info "(response) ~a ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)~%"
-        (response-request response) response status close
-        headers (length body))
+  (log:info "(response) ~a ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)"
+            (response-request response) response status close
+            headers (length body))
   ;; make sure we haven't already responded to this request
   (when (response-finished-p response)
     (error (make-instance 'response-already-sent :response response)))
@@ -159,13 +159,13 @@
             ;; close the socket once it's done writing
             (as:write-socket-data socket (as:bytes nil)
               :write-cb (lambda (socket)
-                          (wlog :debug "(response) Close socket ~a~%" response)
+                          (log:debug "(response) Close socket ~a" response)
                           (setf (as:socket-data socket) nil)
                           (as:close-socket socket)))
             ;; we sent a response, but aren't closing. reset the parser so that if
             ;; another request comes in on the same socket, WE'LL BE READY!!!!11one
             (progn
-              (wlog :debug "(response) Reset parser: ~a~%" response)
+              (log:debug "(response) Reset parser: ~a" response)
               (setup-parser socket)))
 
         ;; mark the response as having been sent
@@ -176,8 +176,8 @@
   "Start a response to the client, but do not specify body content (or close the
    connection). Return a chunked (chunga) stream that can be used to send the
    body content bit by bit until finished by calling finish-response."
-  (wlog :debug "(response) Start chunked response ~a (status ~a) (headers ~s)~%"
-                    response status headers)
+  (log:debug "(response) Start chunked response ~a (status ~a) (headers ~s)"
+             response status headers)
   ;; we need to add in our own transfer header, so remove all others
   (dolist (head-list (list headers (response-headers response)))
     (remf head-list :content-length)
@@ -197,7 +197,7 @@
 (defun finish-response (response &key (close nil close-specified-p))
   "Given the stream passed back from start-response, finalize the response (send
    empty chunk) and close the connection, if specified."
-  (wlog :debug "(response) Finish response (close ~a)~%" close)
+  (log:debug "(response) Finish response (close ~a)" close)
   (let* ((chunked-stream (response-chunk-stream response))
          (request (response-request response))
          (socket (request-socket request)))
@@ -218,7 +218,7 @@
     (as:write-socket-data socket (as:bytes #(48 13 10 13 10))   ; "0\r\n\r\n"
       :write-cb (lambda (socket)
                   (when close
-                    (wlog :debug "(response) Finish, close socket~%")
+                    (log:debug "(response) Finish, close socket")
                     (setf (as:socket-data socket) nil)
                     (as:close-socket socket)))))
   response)
