@@ -21,7 +21,7 @@
 
 (defun clear-routes ()
   "Clear out all routes."
-  (log:debug "(route) Clearing routes")
+  (log:debu1 "(route) Clearing routes")
   (setf (wookie-state-routes *state*) (make-array 0 :adjustable t :fill-pointer t)))
 
 (defun make-route (method resource fn &key regex case-sensitive allow-chunking buffer-body suppress-100 vhost)
@@ -104,7 +104,7 @@
 
 (defun clear-route (method resource-str)
   "Clear out a route in the routing table."
-  (log:debug "(route) Clear route ~s" resource-str)
+  (log:debu1 "(route) Clear route ~s" resource-str)
   (let ((new-routes (delete-if
                       (lambda (route)
                         (and (eq (getf route :method) method)

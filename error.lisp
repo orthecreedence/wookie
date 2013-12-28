@@ -19,10 +19,10 @@
                (subtypep (type-of event) 'as:tcp-eof))
       (return-from main-event-handler))
 
-    ;; only show as:tcp-info conditions when in :debug logging mode
+    ;; make sure tcp-info events get a lower log level. they suck.
     (if (typep event 'as:tcp-info)
-        (log:debug "(event) ~a (~a)" event socket)
-        (log:info "(event) ~a (~a)" event socket))
+        (log:debu1 "(event) ~a (~a)" event socket)
+        (log:debug "(event) ~a (~a)" event socket))
 
     (unwind-protect
       (if (or (functionp *error-handler*)

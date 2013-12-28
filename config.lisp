@@ -10,18 +10,6 @@
            #:*tmp-file-store*))
 (in-package :wookie-config)
 
-;; define our logging levels. follows syslog.
-(defparameter +log-levels+ '(:emerg 0
-                             :error 1
-                             :warning 2
-                             :notice 3
-                             :info 4
-                             :debug 5))
-
-(defvar *log-level* :warning
-  "Wookie's log level. Default is :warning. Acceptable values are
-   '(:debug :info :notice :warning :error :emerg)")
-
 (defvar *log-output* nil
   "Can hold a stream to send log messages to. If nil, sends to *standard-output*")
 

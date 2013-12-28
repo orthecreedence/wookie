@@ -37,7 +37,7 @@
                  (flet ((run-route (route)
                           (if route
                               (let ((route-fn (getf route :curried-route)))
-                                (log:debug "(route) Dispatch ~a: ~s" sock route)
+                                (log:debu1 "(route) Dispatch ~a: ~s" sock route)
                                 (funcall route-fn request response)
                                 ;; if route expects chunking and all body chunks
                                 ;; have come in already, run the chunk callback
@@ -73,7 +73,7 @@
                            ;; route onto the exclude list, load the next route, and
                            ;; try again
                            (use-next-route ()
-                             (log:debug "(route) Next route")
+                             (log:debu1 "(route) Next route")
                              (push route route-exclude)
                              (setf route (find-route (http-parse:http-method http)
                                                      route-path
@@ -92,12 +92,12 @@
                         (parsed-uri (puri:parse-uri resource))
                         (path (do-urlencode:urldecode (puri:uri-path parsed-uri) :lenientp t))
                         (host (getf headers :host)))
-                   (log:info "(request)  ~a ~a ~s ~a ~a"
-                             request
-                             response
-                             method
-                             resource
-                             (if host (concatenate 'string "(" host ")") ""))
+                   (log:debu1 "(request)  ~a ~a ~s ~a ~a"
+                              request
+                              response
+                              method
+                              resource
+                              (if host (concatenate 'string "(" host ")") ""))
                    (setf route-path path)
                    ;; save the parsed uri for plugins/later code
                    (setf (request-uri request) parsed-uri
@@ -200,7 +200,7 @@
    http-parse parser which decide amongst themselves, during different points in
    the parsing, when to dispatch to the found router, when to send chunked
    content to the route, etc."
-  (log:debug "(connect) ~a" sock)
+  (log:debu1 "(connect) ~a" sock)
   ;; TODO pass client address info into :connect hook
   (do-run-hooks (sock) (run-hooks :connect sock)
     (setup-parser sock)))
@@ -209,7 +209,7 @@
   "A simple read-cb handler that passed data to the HTTP parser attached to the
    socket the data is coming in on. The parser runs all necessary callbacks
    directly, so this function just blindly feeds the data in."
-  (log:debug "(read) ~a: ~a bytes" sock (length data))
+  (log:debu1 "(read) ~a: ~a bytes" sock (length data))
   ;; grab the parser stored in the socket and pipe the data into it
   (let ((parser (getf (as:socket-data sock) :parser)))
     (funcall parser data)))

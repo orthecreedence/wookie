@@ -2,7 +2,7 @@
 
 (defun clear-hooks (&optional hook)
   "Clear all hooks (default) or optionally a specific hook type."
-  (log:debug "(hook) Clearing ~a" (if hook
+  (log:debu1 "(hook) Clearing ~a" (if hook
                                       (format nil "hook ~s" hook)
                                       "all hooks"))
   (if hook
@@ -26,7 +26,7 @@
    info against your database, finishing the future it returns only when the
    database has responded. Once the future is finished, then Wookie will
    continue processing the request."
-  (log:debug "(hook) Run ~s" hook)
+  (log:debu1 "(hook) Run ~s" hook)
   (let ((future (make-future))
         (hooks (gethash hook (wookie-state-hooks *state*)))
         (collected-futures nil)   ; holds futures returned from hook functions
@@ -72,7 +72,7 @@
             ;; catch any errors while processing and forward them to the hook
             ;; runner
             ((or error simple-error) (e)
-              (log:debug "(hook) Caught future error processing hook ~a (~a)" hook (type-of e))
+              (log:debu1 "(hook) Caught future error processing hook ~a (~a)" hook (type-of e))
               (signal-error future e)
               ;; clear out all callbacks/errbacks/values/etc. essentially, this
               ;; future and anything it references is gone forever.
@@ -102,7 +102,7 @@
 (defun add-hook (hook function &optional hook-name)
   "Add a hook into the wookie system. Hooks will be run in the order they were
    added."
-  (log:debug "(hook) Adding hook ~s ~a" hook (if hook-name
+  (log:debu1 "(hook) Adding hook ~s ~a" hook (if hook-name
                                                  (format nil "(~s)" hook-name)
                                                  ""))
   ;; append instead of push since we want them to run in the order they were added
@@ -114,7 +114,7 @@
    name given at add-hook."
   (when (and function/hook-name
              (gethash hook (wookie-state-hooks *state*)))
-    (log:debug "(hook) Remove hook ~s" hook)
+    (log:debu1 "(hook) Remove hook ~s" hook)
     (let ((new-hooks (remove-if
                        (lambda (hook)
                          (let ((fn (getf hook :function))
