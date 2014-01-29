@@ -1,3 +1,10 @@
+;;; This file holds the parser. It's the piece that ties *everything* together,
+;;; from dispatching routes, body chunking, running a lot of essential hooks,
+;;; etc.
+;;;
+;;; The parser is the heart of Wookie and holds most of the core logic. Most of
+;;; the other pieces are icing on the cake.
+
 (in-package :wookie)
 
 (defun get-overridden-method (request original-method)
@@ -15,9 +22,19 @@
         original-method)))
 
 (defun setup-parser (sock)
-  "Setup a parser on a socket. This can be called multiple times on the same
-   socket (usually at the end of a request) so that if another request comes in
-   on the same connect, we'll have reset state =]"
+  "This is the main parser function. It's responsible for listening to a socket,
+   setting up an HTTP parser for it, handling the different events/callbacks the
+   HTTP parser throws at it, dispatching routes, handling body chunking, etc. A
+   lot of this is done via shared state which all lives under this function's
+   top-level (let) form, and a set of local functions which read/modify this
+   shared state.
+
+   This function is at the core of Wookie's being.
+
+   Note that setup-parser can be called multiple times on the same socket. The
+   only reason to do this is if a request/response has come and gone on the
+   socket and you wish to make the socket available for another request. Wookie
+   handles all of this automatically."
   (let* ((http (make-instance 'http-parse:http-request))
          (route-path nil)
          (route nil)  ; holds the current route, filled in below once we get headers
@@ -29,6 +46,10 @@
          (body-finished-p nil))
     (setf (as:socket-data sock) (list :request request :response response))
     (labels ((dispatch-route ()
+               "Dispatch the route under `route`. This not only handles calling
+                the route's main function, but also handles use-next-route
+                conditions and setting up intricate logic for resilient body
+                chunking. It also runs the :pre-route and :post-route hooks."
                ;; dispatch the current route, but only if we haven't already done so
                (when route-dispatched
                  (return-from dispatch-route))
@@ -45,13 +66,34 @@
                                 ;; body callback will never be called).
                                 (let ((request-body-cb (request-body-callback request)))
                                   (when (and (getf route :allow-chunking)
-                                             (getf route :buffer-body)
-                                             body-buffer
+                                             (getf route :buffer-body))
+                                    (if (and body-buffer
                                              body-finished-p)
-                                    (let ((body (flex:get-output-stream-sequence body-buffer)))
-                                      (if request-body-cb
-                                          (funcall request-body-cb body t)
-                                          (setf (request-body-callback-setcb request) (lambda (body-cb) (funcall body-cb body t))))))))
+                                        ;; the body has finished processing, either
+                                        ;; send it into the chunking function or set
+                                        ;; up a callback that is called when
+                                        ;; with-chunking is called that pumps the body
+                                        ;; into the newly setup chunking callback
+                                        (let ((body (flex:get-output-stream-sequence body-buffer)))
+                                          (if request-body-cb
+                                              ;; with-chunking already called, great. pass
+                                              ;; in the body
+                                              (funcall request-body-cb body t)
+                                              ;; set up a callback that fires when
+                                              ;; with-chunking is called. it'll pass the
+                                              ;; body into the with-chunking callback
+                                              ;; once set
+                                              (setf (request-body-callback-setcb request) (lambda (body-cb) (funcall body-cb body t)))))
+                                        ;; chunking hasn't started yet AND we haven't called
+                                        ;; with-chunking yet. this is kind of an edge case,
+                                        ;; but it needs to be handled. we set up a callback
+                                        ;; that runs once with-chunking is called that
+                                        ;; *hopes* the body has finished chunking and if so,
+                                        ;; fires with-chunking with the body.
+                                        (setf (request-body-callback-setcb request) (lambda (body-cb)
+                                                                                      (let ((body (flex:get-output-stream-sequence body-buffer)))
+                                                                                        (when body
+                                                                                          (funcall body-cb body t)))))))))
                               (progn
                                 (log:warn "(route) Missing route: ~s" route)
                                 (funcall 'main-event-handler (make-instance 'route-not-found
@@ -81,11 +123,10 @@
                  (do-run-hooks (sock) (run-hooks :post-route request response)
                    nil)))
              (header-callback (headers)
-               ;; if we got the headers, it means we can find the route we're
-               ;; destined to use. if the route accepts chunks and the body is
-               ;; chunked, run the router now so it can set up chunk listening.
-               ;; otherwise, save the route for later and let the rest of the
-               ;; request come in.
+               "Called when our HTTP parser graciously passes us a block of
+                parsed headers. Allows us to find which route we're going to
+                dispatch to, and if needed, set up chunking *before* the body
+                starts flowing in. Responsible for the :parsed-headers hook."
                (future-handler-case
                  (let* ((method (http-parse:http-method http))
                         (resource (http-parse:http-resource http))
@@ -143,6 +184,11 @@
                    (setf error-occurred-p t)
                    (main-event-handler e sock))))
              (body-callback (chunk finishedp)
+               "Called (sometimes multiple times per request) when the HTTP
+                parser sends us a chunk of body content, which mainly occurs
+                during a chunked HTTP request. This function is responsible
+                for calling our :body-chunk, and also for buffering body data
+                if the route allows."
                (when error-occurred-p
                  (return-from body-callback))
                ;; forward the chunk to the callback provided in the chunk-enabled
@@ -178,6 +224,8 @@
                             (setf body-buffer (flex:make-in-memory-output-stream :element-type '(unsigned-byte 8))))
                           (write-sequence chunk body-buffer))))))
              (finish-callback ()
+               "Called when an entire HTTP request has been parsed. Responsible
+                for the :body-complete hook."
                (when error-occurred-p
                  (return-from finish-callback))
                (setf body-finished-p t)
@@ -206,7 +254,7 @@
     (setup-parser sock)))
 
 (defun read-data (sock data)
-  "A simple read-cb handler that passed data to the HTTP parser attached to the
+  "A simple read-cb handler that passes data to the HTTP parser attached to the
    socket the data is coming in on. The parser runs all necessary callbacks
    directly, so this function just blindly feeds the data in."
   (log:debu1 "(read) ~a: ~a bytes" sock (length data))
