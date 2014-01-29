@@ -92,7 +92,7 @@
                         (parsed-uri (puri:parse-uri resource))
                         (path (do-urlencode:urldecode (puri:uri-path parsed-uri) :lenientp t))
                         (host (getf headers :host)))
-                   (log:debu1 "(request)  ~a ~a ~s ~a ~a"
+                   (log:debug "(request)  ~a ~a ~s ~a ~a"
                               request
                               response
                               method

@@ -91,7 +91,7 @@
    sent fully. However, send-response does its best to read the request headers
    and determine whether or not the connection should be closed. Unless you have
    a reason to specify :close, it may be best to leave it blank."
-  (log:debu1 "(response) ~a ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)"
+  (log:debug "(response) ~a ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)"
              (response-request response) response status close
              headers (length body))
   ;; make sure we haven't already responded to this request
@@ -176,7 +176,7 @@
   "Start a response to the client, but do not specify body content (or close the
    connection). Return a chunked (chunga) stream that can be used to send the
    body content bit by bit until finished by calling finish-response."
-  (log:debu1 "(response) Start chunked response ~a (status ~a) (headers ~s)"
+  (log:debug "(response) Start chunked response ~a (status ~a) (headers ~s)"
              response status headers)
   ;; we need to add in our own transfer header, so remove all others
   (dolist (head-list (list headers (response-headers response)))
@@ -197,7 +197,7 @@
 (defun finish-response (response &key (close nil close-specified-p))
   "Given the stream passed back from start-response, finalize the response (send
    empty chunk) and close the connection, if specified."
-  (log:debu1 "(response) Finish response (close ~a)" close)
+  (log:debug "(response) Finish response ~a (close ~a)" response close)
   (let* ((chunked-stream (response-chunk-stream response))
          (request (response-request response))
          (socket (request-socket request)))
