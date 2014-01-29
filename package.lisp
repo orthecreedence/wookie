@@ -1,7 +1,6 @@
 (defpackage :wookie
   (:use :cl :wookie-config :wookie-util :cl-async-future)
-  (:export #:*log-level*
-           #:*error-handler*
+  (:export #:*error-handler*
 
            #:*hide-version*
            #:*tmp-file-store*

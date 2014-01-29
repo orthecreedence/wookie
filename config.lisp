@@ -1,17 +1,10 @@
 (defpackage :wookie-config
   (:use :cl)
-  (:export #:+log-levels+
-           #:*log-level*
-           #:*log-output*
-
-           #:*error-handler*
+  (:export #:*error-handler*
            #:*hide-version*
            #:*enabled-plugins*
            #:*tmp-file-store*))
 (in-package :wookie-config)
-
-(defvar *log-output* nil
-  "Can hold a stream to send log messages to. If nil, sends to *standard-output*")
 
 (defvar *error-handler* nil
   "Wookie installs its own error/event handler to the TCP server it operates on,
