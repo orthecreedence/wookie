@@ -57,7 +57,7 @@
        (let ((,request-var ,request))
          (setf (request-body-callback ,request-var)
                (lambda (,chunk-data ,last-chunk-p)
-                 (log:debu1 "(chunk) Got chunk (~a) ~a bytes"
+                 (log:debu2 "(chunk) Got chunk (~a) ~a bytes"
                             ,last-chunk-p
                             (length ,chunk-data))
                  ,@body))
