@@ -171,9 +171,10 @@
                        ;; as one big chunk.
                        (when (and found-route
                                   (getf found-route :allow-chunking))
-                         ;; support large uploads from idiot browsers a bit
-                         ;; better (no streaming uploads in XHR)
-                         (setf (http-parse:http-force-stream http) t)
+                         (unless (string= (string-downcase (getf headers :transfer-encoding)) "chunked")
+                           ;; support large uploads from idiot browsers a bit
+                           ;; better (no streaming uploads in XHR)
+                           (setf (http-parse:http-force-stream http) t))
                          (dispatch-route)))))
                  ;; pipe all uncaught errors we get to the main event handler
                  ;; (with our socket object).
