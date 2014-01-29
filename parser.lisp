@@ -93,7 +93,7 @@
                                         (setf (request-body-callback-setcb request) (lambda (body-cb)
                                                                                       (when body-buffer
                                                                                         (let ((body (flex:get-output-stream-sequence body-buffer)))
-                                                                                          (funcall body-cb body t)))))))))
+                                                                                          (funcall body-cb body body-finished-p)))))))))
                               (progn
                                 (log:warn "(route) Missing route: ~s" route)
                                 (funcall 'main-event-handler (make-instance 'route-not-found
