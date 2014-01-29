@@ -113,13 +113,21 @@
                       (wookie-state-routes *state*))))
     (setf (wookie-state-routes *state*) new-routes)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk buffer-body suppress-100 force-chunking (replace t) (vhost '*default-vhost*))
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk (buffer-body t) suppress-100 force-chunking (replace t) (vhost '*default-vhost*))
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list.
 
      :regex specifies whether resource is a regex or not
      :chunk specifies if the route can handle chunked content
+     :buffer-body tells Wookie to save any body parts that come through before
+       with-chunking is called
+     :suppress-100 tells Wookie that we want to send our own `100 Continue` HTTP
+       response if we get an `Expect: 100-continue` header in the request
+     :force-chunking tells the route that if :chunk is T and the client doesn't
+       want to stream the data to us, we internally stream it in packet by
+       packet to with-chunking as it comes in. This allows us to *not* buffer an
+       entire file into memory when we're already set up to stream it
      :replace tells the routing system to upsert this resource/method set
        (instead of just blindly adding it to the end of the list like default)
 
