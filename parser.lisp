@@ -91,8 +91,8 @@
                                         ;; *hopes* the body has finished chunking and if so,
                                         ;; fires with-chunking with the body.
                                         (setf (request-body-callback-setcb request) (lambda (body-cb)
-                                                                                      (let ((body (flex:get-output-stream-sequence body-buffer)))
-                                                                                        (when body
+                                                                                      (when body-buffer
+                                                                                        (let ((body (flex:get-output-stream-sequence body-buffer)))
                                                                                           (funcall body-cb body t)))))))))
                               (progn
                                 (log:warn "(route) Missing route: ~s" route)
