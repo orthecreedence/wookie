@@ -96,7 +96,7 @@
             for route across (wookie-state-routes *state*) do
         (when (and (eq (getf route :method) method)
                    (string= (getf route :resource-str) resource-str))
-          (setf (aref (wookie-state-routes *state*) i) route
+          (setf (aref (wookie-state-routes *state*) i) new-route
                 route-found t)
           (return))))
     (unless route-found
