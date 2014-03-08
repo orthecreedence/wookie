@@ -13,7 +13,10 @@
   (let* ((hash (plugin-request-data :get request))
          (val (when (hash-table-p hash)
                 (gethash "_method" hash))))
-    (if (stringp val)
+    ;; if we passed in _method *and* we're not doing an OPTIONS call, replace
+    ;; the HTTP method with the override
+    (if (and (stringp val)
+             (not (eq original-method :options)))
         (let ((new-method (intern (string-upcase val) :keyword)))
           ;; make sure it's copacetic
           (if (find new-method '(:get :post :delete :put :head :options :trace :connect))
