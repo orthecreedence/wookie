@@ -111,7 +111,7 @@
                         (and (eq (getf route :method) method)
                              (string= (getf route :resource-str) resource-str)))
                       (wookie-state-routes *state*))))
-    (setf (wookie-state-routes *state*) new-routes)))
+    (setf (wookie-state-routes *state*) (alexandria:copy-array new-routes :fill-pointer t :adjustable t))))
 
 (defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk (buffer-body t) suppress-100 force-chunking (replace t) (vhost '*default-vhost*))
                     (bind-request bind-response &optional bind-args)
