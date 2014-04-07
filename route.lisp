@@ -93,6 +93,12 @@
                      (sort (copy-list method2) #'string<))))
       nil))
 
+(defun route-equal (route method resource-str)
+  "Test the property values of :method and :resource-str in a route
+   plist for equality against a supplied method and resource-str."
+  (and (method-equal (getf route :method) method)
+       (string= (getf route :resource-str) resource-str)))
+
 (defun upsert-route (new-route)
   "Add a new route to the table. If a route already exists with the same method
    and resource string, it is replaced with the new one in the same position the 
@@ -103,8 +109,7 @@
     (unless (zerop (length (wookie-state-routes *state*)))
       (loop for i from 0
             for route across (wookie-state-routes *state*) do
-        (when (and (method-equal (getf route :method) method)
-                   (string= (getf route :resource-str) resource-str))
+        (when (route-equal route method resource-str)
           (setf (aref (wookie-state-routes *state*) i) new-route
                 route-found t)
           (return))))
@@ -117,8 +122,7 @@
   (log:debu1 "(route) Clear route ~s" resource-str)
   (let ((new-routes (delete-if
                       (lambda (route)
-                        (and (method-equal (getf route :method) method)
-                             (string= (getf route :resource-str) resource-str)))
+                        (route-equal route method resource-str))
                       (wookie-state-routes *state*))))
     (setf (wookie-state-routes *state*) (alexandria:copy-array new-routes :fill-pointer t :adjustable t))))
 
