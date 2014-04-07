@@ -59,7 +59,8 @@
         (let* ((num-futures-finished 0)
                ;; create a function that tracks how many futures have finished
                (finish-fn
-                 (lambda ()
+                 (lambda (&rest _)
+                   (declare (ignore _))
                    (incf num-futures-finished)
                    (when (<= (length collected-futures) num-futures-finished)
                      ;; all our watched futures are finished, continue the
