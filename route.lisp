@@ -120,11 +120,12 @@
 (defun clear-route (method resource-str)
   "Clear out a route in the routing table."
   (log:debu1 "(route) Clear route ~s" resource-str)
-  (let ((new-routes (delete-if
-                      (lambda (route)
-                        (route-equal route method resource-str))
-                      (wookie-state-routes *state*))))
-    (setf (wookie-state-routes *state*) (alexandria:copy-array new-routes :fill-pointer t :adjustable t))))
+  (let* ((new-routes (delete-if
+                       (lambda (route)
+                         (route-equal route method resource-str))
+                       (wookie-state-routes *state*)))
+         (new-routes (make-array (length new-routes) :initial-contents new-routes :fill-pointer t :adjustable t)))
+    (setf (wookie-state-routes *state*) new-routes)))
 
 (defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk (buffer-body t) suppress-100 force-chunking (replace t) (vhost '*default-vhost*))
                     (bind-request bind-response &optional bind-args)
