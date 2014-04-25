@@ -110,7 +110,14 @@
     ;; run the response hooks
     (do-run-hooks (socket) (run-hooks :response-started response request status headers body)
       (let* ((headers (append (response-headers response) headers))
-             (body-enc (when body (babel:string-to-octets body :encoding :utf-8)))
+             (body-enc (cond ((stringp body)
+                              (babel:string-to-octets body :encoding :utf-8))
+                             ((typep body 'cl-async-util:octet-vector)
+                              body)
+                             ((null body)
+                              nil)
+                             (t
+                              (error "Unsupported body type (need string or octet vector): ~a~%" (type-of body)))))
              (headers (if (and body (not (getf headers :content-length)))
                           (append headers (list :content-length (length body-enc)))
                           headers))
