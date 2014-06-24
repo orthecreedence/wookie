@@ -26,8 +26,11 @@
                                      (send-response response :status 500 :body body)))))
                              ;; let the guy looking at the logs see.
                              (log:error "UNcaught error: ~a" err)))))
+    (funcall (intern "DEF-DIRECTORY-ROUTE" :wookie-plugin-core-directory-router) "/" asset-dir)
+    ;; catch-all handler
+    (defroute (:* ".*") (req res)
+      (send-response res :status 404 :body "Not found!"))
     (as:with-event-loop (:catch-app-errors t)
-      (funcall (intern "DEF-DIRECTORY-ROUTE" :wookie-plugin-core-directory-router) "/" asset-dir)
       (let ((listener (make-instance 'listener :bind bind :port port)))
         (start-server listener)))))
 
