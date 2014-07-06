@@ -141,7 +141,7 @@
 (defun send-file (file-path route-path local-path request response)
   (declare (ignore request route-path))
   (let ((path (concatenate 'string local-path "/" file-path))
-        (buffer (make-array 1024 :element-type '(unsigned-byte 8)))
+        (buffer (make-array (* 1024 1024) :element-type '(unsigned-byte 8)))
         (stream (start-response response :headers (list :content-type
                                                         (get-mime file-path)))))
     (with-open-file (fstream path :element-type '(unsigned-byte 8))
