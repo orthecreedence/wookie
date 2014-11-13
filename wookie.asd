@@ -10,7 +10,7 @@
                #:cl-ppcre
                #:babel
                #:chunga
-               #:http-parse
+               #:fast-http
                #:quri
                #:do-urlencode
                #:cl-fad

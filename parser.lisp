@@ -38,7 +38,7 @@
    only reason to do this is if a request/response has come and gone on the
    socket and you wish to make the socket available for another request. Wookie
    handles all of this automatically."
-  (let* ((http (make-instance 'http-parse:http-request))
+  (let* ((http (fast-http:make-http-request))
          (route-path nil)
          (route nil)  ; holds the current route, filled in below once we get headers
          (route-dispatched nil)
@@ -120,7 +120,7 @@
                            (use-next-route ()
                              (log:debu1 "(route) Next route")
                              (push route route-exclude)
-                             (setf route (find-route (http-parse:http-method http)
+                             (setf route (find-route (fast-http:http-method http)
                                                      route-path
                                                      :exclude route-exclude))))))))
                  (do-run-hooks (sock) (run-hooks :post-route request response)
@@ -131,8 +131,8 @@
                 dispatch to, and if needed, set up chunking *before* the body
                 starts flowing in. Responsible for the :parsed-headers hook."
                (future-handler-case
-                 (let* ((method (http-parse:http-method http))
-                        (resource (http-parse:http-resource http))
+                 (let* ((method (fast-http:http-method http))
+                        (resource (fast-http:http-resource http))
                         (parsed-uri (quri:uri resource))
                         (path (do-urlencode:urldecode (quri:uri-path parsed-uri) :lenientp t))
                         (host (getf headers :host)))
@@ -174,11 +174,6 @@
                        ;; as one big chunk.
                        (when (and found-route
                                   (getf found-route :allow-chunking))
-                         (when (and (not (string= (string-downcase (getf headers :transfer-encoding)) "chunked"))
-                                    (getf found-route :force-chunking))
-                           ;; support large uploads from idiot browsers a bit
-                           ;; better (since no streaming uploads in XHR)
-                           (setf (http-parse:http-force-stream http) t))
                          (dispatch-route)))))
                  ;; pipe all uncaught errors we get to the main event handler
                  ;; (with our socket object).
@@ -191,7 +186,7 @@
                  (error (e)
                    (setf error-occurred-p t)
                    (main-event-handler e sock))))
-             (body-callback (chunk finishedp)
+             (body-callback (chunk start end)
                "Called (sometimes multiple times per request) when the HTTP
                 parser sends us a chunk of body content, which mainly occurs
                 during a chunked HTTP request. This function is responsible
@@ -201,9 +196,8 @@
                  (return-from body-callback))
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
-               (do-run-hooks (sock) (run-hooks :body-chunk request chunk finishedp)
+               (do-run-hooks (sock) (run-hooks :body-chunk request chunk body-finished-p)
                  (let ((request-body-cb (request-body-callback request)))
-                   (setf body-finished-p (or body-finished-p finishedp))
                    (cond ((and request-body-cb
                                body-buffer)
                           ;; we have a body chunking callback and the body has
@@ -217,7 +211,7 @@
                          (request-body-cb
                           ;; we have a chunking callback set up by the route, no
                           ;; need to do anything fancy. jsut send the chunk in.
-                          (funcall request-body-cb chunk finishedp))
+                          (funcall request-body-cb chunk body-finished-p))
                          ((and (getf route :allow-chunking)
                                (getf route :buffer-body))
                           ;; we're allowing chunking through this route, we're
@@ -243,7 +237,7 @@
       ;; make an HTTP parser. will be attached to the socket and will be
       ;; responsible for running all of the above callbacks directly as data
       ;; filters in from the read callback.
-      (let ((parser (http-parse:make-parser
+      (let ((parser (fast-http:make-parser
                       http
                       :header-callback #'header-callback
                       :body-callback #'body-callback

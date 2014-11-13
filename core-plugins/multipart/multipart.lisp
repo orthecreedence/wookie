@@ -63,7 +63,7 @@
                            (if (getf field-meta :filename)
                                (save-file-data)
                                (save-form-data)))))
-             (parser (http-parse:make-multipart-parser headers multi-cb)))
+             (parser (fast-http:make-multipart-parser (gethash "content-type" headers) multi-cb)))
         (when parser
           (setf (plugin-request-data :multipart request)
                 (list :hash-form hash-form-vars
