@@ -133,8 +133,8 @@
                (future-handler-case
                  (let* ((method (http-parse:http-method http))
                         (resource (http-parse:http-resource http))
-                        (parsed-uri (puri:parse-uri resource))
-                        (path (do-urlencode:urldecode (puri:uri-path parsed-uri) :lenientp t))
+                        (parsed-uri (quri:uri resource))
+                        (path (do-urlencode:urldecode (quri:uri-path parsed-uri) :lenientp t))
                         (host (getf headers :host)))
                    (log:debug "(request)  ~a ~a ~s ~a ~a"
                               request

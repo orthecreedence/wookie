@@ -11,8 +11,7 @@
                #:babel
                #:chunga
                #:http-parse
-               #:puri
-               #:local-time
+               #:quri
                #:do-urlencode
                #:cl-fad
                #:flexi-streams

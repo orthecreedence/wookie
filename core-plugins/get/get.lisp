@@ -6,7 +6,7 @@
   "Grab GET data from parsed URI querystring and set into a hash table stored
    with the request."
    (setf (plugin-request-data :get request) (querystring-to-hash
-                                              (puri:uri-query
+                                              (quri:uri-query
                                                 (request-uri request)))))
 
 (defplugfun get-var (request key)
