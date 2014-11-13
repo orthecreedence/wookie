@@ -141,13 +141,12 @@
 (defun send-file (file-path route-path local-path request response)
   (declare (ignore request route-path))
   (let ((path (concatenate 'string local-path "/" file-path))
-        (buffer (make-array (* 1024 1024) :element-type '(unsigned-byte 8)))
         (stream (start-response response :headers (list :content-type
                                                         (get-mime file-path)))))
     (with-open-file (fstream path :element-type '(unsigned-byte 8))
-      (loop for n = (read-sequence buffer fstream)
-            while (< 0 n) do
-        (write-sequence (subseq buffer 0 n) stream)
+      (let ((buffer (make-array (file-length fstream) :element-type 'as:octet)))
+        (read-sequence buffer fstream)
+        (write-sequence buffer stream)
         (force-output stream)))
     (finish-response response)))
 
