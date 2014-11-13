@@ -69,18 +69,12 @@
   "Add a number of default headers to a headers plist. If one of the default
    headers is already present, do NOT overwrite it. This allows the app to set
    its own headers that can override the defaults."
-  (flet ((prepend-header-if-not-exists (key val)
-           (unless (getf headers key)
-             (setf headers (append (list key val) headers)))))
-    (prepend-header-if-not-exists :date
-                                  (local-time:format-timestring
-                                    nil
-                                    (local-time:now)
-                                    :format local-time:+rfc-1123-format+))
-    (prepend-header-if-not-exists :server
-                                  (if *hide-version*
-                                      "Wookie"
-                                      (format nil "Wookie (~a)" *wookie-version*))))
+  ;(setf (getf headers :date) (local-time:format-timestring
+  ;                             nil
+  ;                             (local-time:now)
+  ;                             :format local-time:+rfc-1123-format+))
+  (unless *hide-version*
+    (setf (getf headers :server) (format nil "Wookie (~a)" *wookie-version*)))
   headers)
 
 (defun send-response (response &key (status 200) headers body (close nil close-specified-p))
