@@ -24,7 +24,7 @@
   (log:debu1 "(route) Clearing routes")
   (setf (wookie-state-routes *state*) (make-array 0 :adjustable t :fill-pointer t)))
 
-(defun make-route (method resource fn &key regex case-sensitive allow-chunking buffer-body suppress-100 force-chunking vhost)
+(defun make-route (method resource fn &key regex case-sensitive store-body allow-chunking buffer-body suppress-100 vhost)
   "Simple wrapper to make a route object from a set of args."
   (let ((scanner (if regex
                      (cl-ppcre:create-scanner
@@ -35,10 +35,10 @@
           :resource scanner
           :fn fn
           :regex regex
+          :store-body store-body
           :allow-chunking allow-chunking
           :buffer-body buffer-body
           :suppress-100 suppress-100
-          :force-chunking force-chunking
           :resource-str resource
           :vhost vhost)))
 
@@ -127,21 +127,19 @@
          (new-routes (make-array (length new-routes) :initial-contents new-routes :fill-pointer t :adjustable t)))
     (setf (wookie-state-routes *state*) new-routes)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk (buffer-body t) suppress-100 force-chunking (replace t) (vhost '*default-vhost*))
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) store-body chunk (buffer-body t) suppress-100 (replace t) (vhost '*default-vhost*))
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list.
 
      :regex specifies whether resource is a regex or not
      :chunk specifies if the route can handle chunked content
+     :store-body is an integer value that tells Wookie to save up to N bytes of
+       the raw http body
      :buffer-body tells Wookie to save any body parts that come through before
        with-chunking is called
      :suppress-100 tells Wookie that we want to send our own `100 Continue` HTTP
        response if we get an `Expect: 100-continue` header in the request
-     :force-chunking tells the route that if :chunk is T and the client doesn't
-       want to stream the data to us, we internally stream it in packet by
-       packet to with-chunking as it comes in. This allows us to *not* buffer an
-       entire file into memory when we're already set up to stream it
      :replace tells the routing system to upsert this resource/method set
        (instead of just blindly adding it to the end of the list like default)
 
@@ -172,10 +170,10 @@
                                      ,@body)
                                    :regex ,regex
                                    :case-sensitive ,case-sensitive
+                                   :store-body ,store-body
                                    :allow-chunking ,chunk
                                    :buffer-body ,buffer-body
                                    :suppress-100 ,suppress-100
-                                   :force-chunking ,force-chunking
                                    :vhost ,vhost)))
        (if ,replace
            (upsert-route ,new-route)

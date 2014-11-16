@@ -3,6 +3,6 @@
   :license "MIT"
   :version "0.2.2"
   :description "A POST plugin for Wookie"
-  :depends-on (#:wookie)
+  :depends-on (#:wookie #:fast-io)
   :components
   ((:file "post")))

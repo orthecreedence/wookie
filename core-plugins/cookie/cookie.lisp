@@ -10,7 +10,7 @@
   "Grab Cookie data from parsed URI querystring and set into a hash table stored
    with the request."
   (let ((hash-cookie-vars (make-hash-table :test #'equal))
-        (cookies (getf (request-headers request) :cookie)))
+        (cookies (gethash "cookie" (request-headers request))))
     (when cookies
       (dolist (cookie (cl-ppcre:split *scanner-cookie-split* cookies))
         (let* ((search-eq (position #\= cookie))

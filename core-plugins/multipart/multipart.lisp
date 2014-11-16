@@ -9,7 +9,7 @@
    async because it blocks, but without libuv or some kind of thread pool this
    the only way to do it without completely exhausting memory."
   (let ((headers (request-headers request)))
-    (when (search "multipart/form-data;" (getf headers :content-type))
+    (when (search "multipart/form-data;" (gethash "content-type" headers))
       (let* ((hash-form-vars (make-hash-table :test #'equal))
              (hash-file-data (make-hash-table :test #'equal))
              (cur-file nil)
@@ -22,7 +22,7 @@
                                                       body-bytes))
                                   ;; once this field is complete, convert the body to a string
                                   (when body-complete-p
-                                    (let ((body (body-to-string field-bytes (getf field-headers :content-type))))
+                                    (let ((body (body-to-string field-bytes (gethash "content-type" field-headers))))
                                       ;; make sure we honor sub-fields (ie data[user][name])
                                       (set-querystring-hash hash-form-vars field-name body))
                                     ;; reset our tmp storage for the next field
@@ -70,7 +70,7 @@
                       :hash-file hash-file-data
                       :parser parser)))))))
 
-(defun parse-multipart-vars (request chunk finishedp)
+(defun parse-multipart-vars (request chunk start end finishedp)
   "Grab multipart data from parsed URI querystring and set into a hash table
    stored with the request."
   (declare (ignore finishedp))
@@ -79,7 +79,7 @@
     ;; if we have a parser, feed the chunk data into it. our hashes will be
     ;; populated as the data is decoded
     (when parser
-      (funcall parser chunk))))
+      (funcall parser chunk start end))))
 
 (defun remove-tmp-files (response request status headers body)
   "Loop over all tmp files uploaded in a request and delete them."

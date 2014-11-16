@@ -45,7 +45,7 @@
          (error-occurred-p nil)
          (request (make-instance 'request :socket sock :http http))
          (response (make-instance 'response :request request))
-         (body-buffer nil)
+         (body-buffer (fast-io:make-output-buffer))
          (body-finished-p nil))
     (setf (as:socket-data sock) (list :request request :response response))
     (labels ((dispatch-route ()
@@ -77,7 +77,7 @@
                                         ;; up a callback that is called when
                                         ;; with-chunking is called that pumps the body
                                         ;; into the newly setup chunking callback
-                                        (let ((body (flex:get-output-stream-sequence body-buffer)))
+                                        (let ((body (fast-io:finish-output-buffer body-buffer)))
                                           (if request-body-cb
                                               ;; with-chunking already called, great. pass
                                               ;; in the body
@@ -95,7 +95,7 @@
                                         ;; fires with-chunking with the body.
                                         (setf (request-body-callback-setcb request) (lambda (body-cb)
                                                                                       (when body-buffer
-                                                                                        (let ((body (flex:get-output-stream-sequence body-buffer)))
+                                                                                        (let ((body (fast-io:finish-output-buffer body-buffer)))
                                                                                           (funcall body-cb body body-finished-p)))))))))
                               (progn
                                 (log:warn "(route) Missing route: ~s" route)
@@ -135,7 +135,7 @@
                         (resource (fast-http:http-resource http))
                         (parsed-uri (quri:uri resource))
                         (path (do-urlencode:urldecode (quri:uri-path parsed-uri) :lenientp t))
-                        (host (getf headers :host)))
+                        (host (gethash "host" headers)))
                    (log:debug "(request)  ~a ~a ~s ~a ~a"
                               request
                               response
@@ -155,7 +155,7 @@
                              (request-method request) method
                              (request-resource request) resource)
                        ;; handle "Expect: 100-continue" properly
-                       (when (string= (getf headers :expect) "100-continue")
+                       (when (string= (gethash "expect" headers) "100-continue")
                          (if found-route
                              (unless (getf route :suppress-100)
                                (send-100-continue response))
@@ -196,21 +196,20 @@
                  (return-from body-callback))
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
-               (do-run-hooks (sock) (run-hooks :body-chunk request chunk body-finished-p)
+               (do-run-hooks (sock) (run-hooks :body-chunk request chunk start end body-finished-p)
                  (let ((request-body-cb (request-body-callback request)))
-                   (cond ((and request-body-cb
-                               body-buffer)
+                   (cond ((and request-body-cb body-buffer)
                           ;; we have a body chunking callback and the body has
                           ;; been buffering. append the latest chunk to the
                           ;; buffer and send the entire buffer into the body cb.
                           ;; then, nil the buffer so we know we don't have to do
                           ;; body buffering anymore
-                          (write-sequence chunk body-buffer)
-                          (funcall request-body-cb (flex:get-output-stream-sequence body-buffer) body-finished-p)
+                          (fast-io:fast-write-sequence chunk body-buffer start end)
+                          (funcall request-body-cb (fast-io:finish-output-buffer body-buffer) body-finished-p)
                           (setf body-buffer nil))
                          (request-body-cb
                           ;; we have a chunking callback set up by the route, no
-                          ;; need to do anything fancy. jsut send the chunk in.
+                          ;; need to do anything fancy. just send the chunk in.
                           (funcall request-body-cb chunk body-finished-p))
                          ((and (getf route :allow-chunking)
                                (getf route :buffer-body))
@@ -222,15 +221,14 @@
                           ;; body buffer if we don't have one and start saving
                           ;; our chunks to it (until our route has a chance to
                           ;; set up the chunking cb).
-                          (unless body-buffer
-                            (setf body-buffer (flex:make-in-memory-output-stream :element-type '(unsigned-byte 8))))
-                          (write-sequence chunk body-buffer))))))
+                          (fast-io:fast-write-sequence chunk body-buffer start end))))))
              (finish-callback ()
                "Called when an entire HTTP request has been parsed. Responsible
                 for the :body-complete hook."
                (when error-occurred-p
                  (return-from finish-callback))
                (setf body-finished-p t)
+               (body-callback (make-array 0 :element-type 'cl-async:octet) 0 0)
                ;; make sure we always dispatch at the end.
                (do-run-hooks (sock) (run-hooks :body-complete request)
                  (dispatch-route))))
@@ -263,5 +261,4 @@
   ;; grab the parser stored in the socket and pipe the data into it
   (let ((parser (getf (as:socket-data sock) :parser)))
     (funcall parser data)))
-
 

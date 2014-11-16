@@ -14,7 +14,7 @@
                #:quri
                #:do-urlencode
                #:cl-fad
-               #:flexi-streams
+               #:fast-io
                #:log4cl)
   :components
   ((:file "config")

@@ -19,12 +19,12 @@
    (headers :accessor request-headers :initarg :headers :initform nil)
    (uri :accessor request-uri :initarg :url :initform nil)
    (data :accessor request-data :initarg :data :initform nil)
+   (store-body :accessor request-store-body :initarg :store-body :initform nil)
+   (body :accessor request-body :initform nil)
    (plugin-data :accessor request-plugin-data :initarg :plugin-data :initform nil)
    (body-callback :accessor request-body-callback :initarg :body-callback :initform nil)
    (body-callback-setcb :accessor request-body-callback-setcb :initarg :body-callback-setcb :initform nil)
-   (http :accessor request-http :initarg :http :initform nil)
-   (error-handlers :accessor request-error-handlers :initarg :error-handlers :initform nil)
-   (error-precedence :accessor request-error-precedence :initarg :error-precedence :initform nil))
+   (http :accessor request-http :initarg :http :initform nil))
   (:documentation "A class describing a request, passed to every route."))
 
 (defclass response ()
@@ -94,7 +94,6 @@
 
   (let* ((request (response-request response))
          (socket (request-socket request)))
-
     (when (as:socket-closed-p socket)
       (error 'as:socket-closed
              :code -1
@@ -103,7 +102,13 @@
   
     ;; run the response hooks
     (do-run-hooks (socket) (run-hooks :response-started response request status headers body)
-      (let* ((headers (append (response-headers response) headers))
+      (let* ((response-headers (response-headers response))
+             (headers (append (if (hash-table-p response-headers)
+                                  (alexandria:hash-table-plist request-headers)
+                                  response-headers)
+                              (if (hash-table-p headers)
+                                  (alexandria:hash-table-plist headers)
+                                  headers)))
              (body-enc (cond ((stringp body)
                               (babel:string-to-octets body :encoding :utf-8))
                              ((typep body 'cl-async-util:octet-vector)
@@ -112,10 +117,9 @@
                               nil)
                              (t
                               (error "Unsupported body type (need string or octet vector): ~a~%" (type-of body)))))
-             (headers (if (and body (not (getf headers :content-length)))
-                          (append headers (list :content-length (length body-enc)))
-                          headers))
              (status-text (lookup-status-text status)))
+        (when (and body (not (getf headers :content-length)))
+          (setf (getf headers :content-length) (length body-enc)))
         ;; make writing a single HTTP line a bit less painful
         (flet ((write-http-line (format-str &rest format-args)
                  (as:write-socket-data
@@ -146,16 +150,16 @@
           (let ((request-headers (request-headers request)))
             (cond
               ;; we're chunking, so don't close yet
-              ((string= (getf request-headers :transfer-encoding) "chunked")
+              ((string= (gethash "transfer-encoding" request-headers) "chunked")
                (setf close nil))
               ;; we got Connection: keep-alive. so, keep-alive...
-              ((string= (getf request-headers :connection) "keep-alive")
+              ((string= (gethash "connection" request-headers) "keep-alive")
                (setf close nil))
               ;; we got a Connection: close and we're not chunking. close.
-              ((string= (getf request-headers :connection) "close")
+              ((string= (gethash "connection" request-headers) "close")
                (setf close t)))))
 
-        ;; if we speficied we want to close, do it now
+        ;; if we specified we want to close, do it now
         (if close
             ;; close the socket once it's done writing
             (as:write-socket-data socket (as:bytes nil)
@@ -209,10 +213,10 @@
       (let ((request-headers (request-headers request)))
         (cond
           ;; we got Connection: keep-alive. so, keep-alive...
-          ((string= (getf request-headers :connection) "keep-alive")
+          ((string= (gethash "connection" request-headers) "keep-alive")
            (setf close nil))
           ;; we got a Connection: close so let's oblige the client
-          ((string= (getf request-headers :connection) "close")
+          ((string= (gethash "connection" request-headers) "close")
            (setf close t)))))
 
     ;; write empty chunk
