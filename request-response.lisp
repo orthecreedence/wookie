@@ -74,7 +74,7 @@
   ;                             (local-time:now)
   ;                             :format local-time:+rfc-1123-format+))
   (unless *hide-version*
-    (setf (getf headers :server) (format nil "Wookie (~a)" *wookie-version*)))
+    (set-header headers :server (format nil "Wookie (~a)" *wookie-version*)))
   headers)
 
 (defun send-response (response &key (status 200) headers body (close nil close-specified-p))
@@ -118,8 +118,8 @@
                              (t
                               (error "Unsupported body type (need string or octet vector): ~a~%" (type-of body)))))
              (status-text (lookup-status-text status)))
-        (when (and body (not (getf headers :content-length)))
-          (setf (getf headers :content-length) (length body-enc)))
+        (when (and body (not (get-header headers :content-length)))
+          (set-header headers :content-length (length body-enc)))
         ;; make writing a single HTTP line a bit less painful
         (flet ((write-http-line (format-str &rest format-args)
                  (as:write-socket-data
@@ -150,13 +150,13 @@
           (let ((request-headers (request-headers request)))
             (cond
               ;; we're chunking, so don't close yet
-              ((string= (gethash "transfer-encoding" request-headers) "chunked")
+              ((string= (get-header request-headers "transfer-encoding") "chunked")
                (setf close nil))
               ;; we got Connection: keep-alive. so, keep-alive...
-              ((string= (gethash "connection" request-headers) "keep-alive")
+              ((string= (get-header request-headers "connection") "keep-alive")
                (setf close nil))
               ;; we got a Connection: close and we're not chunking. close.
-              ((string= (gethash "connection" request-headers) "close")
+              ((string= (get-header request-headers "connection") "close")
                (setf close t)))))
 
         ;; if we specified we want to close, do it now
@@ -213,10 +213,10 @@
       (let ((request-headers (request-headers request)))
         (cond
           ;; we got Connection: keep-alive. so, keep-alive...
-          ((string= (gethash "connection" request-headers) "keep-alive")
+          ((string= (get-header request-headers "connection") "keep-alive")
            (setf close nil))
           ;; we got a Connection: close so let's oblige the client
-          ((string= (gethash "connection" request-headers) "close")
+          ((string= (get-header request-headers "connection") "close")
            (setf close t)))))
 
     ;; write empty chunk

@@ -135,7 +135,7 @@
                         (resource (fast-http:http-resource http))
                         (parsed-uri (quri:uri resource))
                         (path (do-urlencode:urldecode (quri:uri-path parsed-uri) :lenientp t))
-                        (host (gethash "host" headers)))
+                        (host (get-header headers "host")))
                    (log:debug "(request)  ~a ~a ~s ~a ~a"
                               request
                               response
@@ -155,7 +155,7 @@
                              (request-method request) method
                              (request-resource request) resource)
                        ;; handle "Expect: 100-continue" properly
-                       (when (string= (gethash "expect" headers) "100-continue")
+                       (when (string= (get-header headers "expect") "100-continue")
                          (if found-route
                              (unless (getf route :suppress-100)
                                (send-100-continue response))

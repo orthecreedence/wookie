@@ -3,7 +3,6 @@
   (:export #:*error-handler*
 
            #:*hide-version*
-           #:*tmp-file-store*
 
            #:wookie-state
            #:wookie-state-hooks
@@ -16,6 +15,9 @@
            #:wookie-error-msg
            #:wookie-error-socket
 
+           #:get-header
+           #:set-header
+           
            #:add-hook
            #:remove-hook
            

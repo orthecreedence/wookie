@@ -1,6 +1,14 @@
 (defpackage :wookie-plugin-core-multipart
-  (:use :cl :wookie-util :wookie))
+  (:use :cl :wookie-util :wookie :wookie-config))
 (in-package :wookie-plugin-core-multipart)
+
+(defvar *tmp-file-counter* 0
+  "Holds a value that is incremented for each temporary file generated.")
+
+(defun generate-tmp-file-name ()
+  "Generate the a full path/filename for a temporary file that does not exist
+   already in the tmp directory."
+  (format nil "~atmp~a" (namestring *tmp-file-store*) (incf *tmp-file-counter*)))
 
 (defun setup-multipart-parse (request)
   "Parses multipart form data (if present). Stores multipart form data in a hash
@@ -9,7 +17,7 @@
    async because it blocks, but without libuv or some kind of thread pool this
    the only way to do it without completely exhausting memory."
   (let ((headers (request-headers request)))
-    (when (search "multipart/form-data;" (gethash "content-type" headers))
+    (when (search "multipart/form-data;" (get-header headers "content-type"))
       (let* ((hash-form-vars (make-hash-table :test #'equal))
              (hash-file-data (make-hash-table :test #'equal))
              (cur-file nil)
@@ -22,7 +30,7 @@
                                                       body-bytes))
                                   ;; once this field is complete, convert the body to a string
                                   (when body-complete-p
-                                    (let ((body (body-to-string field-bytes (gethash "content-type" field-headers))))
+                                    (let ((body (body-to-string field-bytes (get-header field-headers "content-type"))))
                                       ;; make sure we honor sub-fields (ie data[user][name])
                                       (set-querystring-hash hash-form-vars field-name body))
                                     ;; reset our tmp storage for the next field
@@ -63,7 +71,7 @@
                            (if (getf field-meta :filename)
                                (save-file-data)
                                (save-form-data)))))
-             (parser (fast-http:make-multipart-parser (gethash "content-type" headers) multi-cb)))
+             (parser (fast-http:make-multipart-parser (get-header headers "content-type") multi-cb)))
         (when parser
           (setf (plugin-request-data :multipart request)
                 (list :hash-form hash-form-vars

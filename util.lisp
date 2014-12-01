@@ -1,6 +1,7 @@
 (defpackage :wookie-util
   (:use :cl :wookie-config :cl-async-future)
-  (:export #:wlog
+  (:export #:get-header
+           #:set-header
            #:map-plist
            #:camel-case
            #:querystringp
@@ -8,12 +9,41 @@
            #:querystring-to-hash
            #:body-to-string
            #:getf-reverse
-           #:generate-tmp-file-name
            #:lookup-status-text))
 (in-package :wookie-util)
 
-(defvar *tmp-file-counter* 0
-  "Holds a value that is incremented for each temporary file generated.")
+(defmacro get-header (header-collection key)
+  "Get a value from a header collection."
+  (alexandria:with-gensyms (headers s-key)
+    `(let ((,headers ,header-collection)
+           (,s-key ,key))
+       (cond ((hash-table-p ,headers)
+              (let ((key (if (stringp ,s-key)
+                             ,s-key
+                             (string-downcase (string ,s-key)))))
+                (gethash key ,headers)))
+             ((listp ,headers)
+              (let ((key (if (keywordp ,s-key)
+                             ,s-key
+                             (intern (string-upcase (string ,s-key)) :keyword))))
+                (getf ,headers key)))))))
+
+(defmacro set-header (header-collection key value)
+  "Set a value into a header collection."
+  (alexandria:with-gensyms (s-key)
+    ;; note, we don't bind the collection here because that will destroy our getf
+    ;; reference
+    `(let ((,s-key ,key))
+       (cond ((hash-table-p ,header-collection)
+              (let ((key (if (stringp ,s-key)
+                             ,s-key
+                             (string-downcase (string ,s-key)))))
+                (setf (gethash key ,header-collection) ,value)))
+             ((listp ,header-collection)
+              (let ((key (if (keywordp ,s-key)
+                             ,s-key
+                             (intern (string-upcase (string ,s-key)) :keyword))))
+                (setf (getf ,header-collection key) ,value)))))))
 
 (defun map-plist (plist fn)
   "Iterate over a plist"
@@ -157,11 +187,6 @@
     (when (eq key (cadr plist))
       (return-from getf-reverse (car plist)))
     (setf plist (cddr plist))))
-
-(defun generate-tmp-file-name ()
-  "Generate the a full path/filename for a temporary file that does not exist
-   already in the tmp directory."
-  (format nil "~atmp~a" (namestring *tmp-file-store*) (incf *tmp-file-counter*)))
 
 (defun lookup-status-text (status-code)
   "Get the HTTP standard text that goes along with a status code."
