@@ -43,7 +43,7 @@
             (as:tcp-eof ()
               ;; a simple "do nothing"
               nil)
-            (t ()
+            (error ()
               ;; unhandled, send it packing to the REPL
               (when (and response (not response-finished))
                 (send-response response
@@ -66,4 +66,3 @@
                      ((subtypep event-type 'as:tcp-info)
                       (as:tcp-socket ev)))))
     (funcall 'main-event-handler ev sock)))
-
