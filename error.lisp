@@ -31,7 +31,7 @@
           (funcall *error-handler* event socket)
 
           ;; no, no error handler, let's do some basic handling of our own
-          (handler-case (error event)
+          (typecase event
             (route-not-found ()
               (when (and response (not response-finished))
                 (send-response response :status 404 :body "Route for that resource not found =[.")))
@@ -43,13 +43,12 @@
             (as:tcp-eof ()
               ;; a simple "do nothing"
               nil)
-            (t ()
+            (error ()
               ;; unhandled, send it packing to the REPL
               (when (and response (not response-finished))
                 (send-response response
                                :status 500
-                               :body (format nil "There was an error processing your request: ~a" event)))
-              (error event))))
+                               :body (format nil "There was an error processing your request: ~a" event))))))
       ;; no matter what, clear out the data for EOF sockets (poor man's garbage
       ;; collection)
       (when (and (typep event 'as:tcp-eof)
