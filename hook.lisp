@@ -31,25 +31,25 @@
         (hooks (gethash hook (wookie-state-hooks *state*)))
         (collected-futures nil)   ; holds futures returned from hook functions
         (last-hook nil))
-    (handler-case
+    (handler-bind
+        (((or error simple-error) (lambda (e)
+                                    (unless *debug-on-error*
+                                      (let* ((hook-name (getf last-hook :name))
+                                             (hook-type hook)
+                                             (hook-id-str (format nil "~s" hook-type))
+                                             (hook-id-str (if hook-name
+                                                            (concatenate 'string hook-id-str (format nil " (~s)" hook-name))
+                                                            hook-id-str)))
+                                        (log:error "(hook) Caught error while running hooks: ~a: ~a" hook-id-str e))
+                                      (signal-error future e)
+                                      (return-from run-hooks future)))))
       (dolist (hook hooks)
         ;; track current hook for better error verbosity
         (setf last-hook hook)
         ;; see if a future was returned from the hook function. if so, save it.
         (let ((ret (apply (getf hook :function) args)))
           (when (futurep ret)
-            (push ret collected-futures))))
-      ((or error simple-error) (e)
-       (let* ((hook-name (getf last-hook :name))
-              (hook-type hook)
-              (hook-id-str (format nil "~s" hook-type))
-              (hook-id-str (if hook-name
-                               (concatenate 'string hook-id-str (format nil " (~s)" hook-name))
-                               hook-id-str)))
-         (log:error "(hook) Caught error while running hooks: ~a: ~a" hook-id-str e))
-       (signal-error future e)
-       (return-from run-hooks future)))
-
+            (push ret collected-futures)))))
     (if (null collected-futures)
         ;; no futures returned from our hook functions, so we can continue
         ;; processing our current request.
@@ -67,7 +67,7 @@
                      ;; request!
                      (finish future)))))
           ;; watch each of the collected futures
-          (future-handler-case
+          (blackbird:catcher
             (dolist (collected-future collected-futures)
               (attach collected-future finish-fn))
             ;; catch any errors while processing and forward them to the hook
@@ -87,7 +87,7 @@
    socket). If no errors occur, run the body normally."
   (let ((sock (gensym "sock")))
     `(let ((,sock ,socket))
-       (future-handler-case
+       (blackbird:catcher
          (wait-for ,run-hook-cmd
            ,@body)
          (error (e)

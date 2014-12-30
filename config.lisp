@@ -1,6 +1,7 @@
 (defpackage :wookie-config
   (:use :cl)
   (:export #:*error-handler*
+           #:*debug-on-error*
            #:*hide-version*
            #:*enabled-plugins*
            #:*tmp-file-store*))
@@ -17,6 +18,9 @@
    If *error-handler* is not specified, Wookie re-triggers the error, otherwise
    the error is sent to the given handler and no further processing on the error
    is done by Wookie.")
+
+(defvar *debug-on-error* nil
+  "If T, will not catch errors but instead allow them to go to the debugger.")
 
 (defvar *hide-version* nil
   "Boolean specifying whether or not to hide the Wookie version in the Server

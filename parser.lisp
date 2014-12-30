@@ -109,20 +109,24 @@
                    (let ((route-exclude nil))
                      (block run-route
                        (loop
-                         (handler-case
-                           ;; run our route and break the loop if successful
-                           (progn
-                             (run-route route)
-                             (return-from run-route))
-                           ;; caught a use-next-route condition, push the current
-                           ;; route onto the exclude list, load the next route, and
-                           ;; try again
-                           (use-next-route ()
-                             (log:debu1 "(route) Next route")
-                             (push route route-exclude)
-                             (setf route (find-route (fast-http:http-method http)
-                                                     route-path
-                                                     :exclude route-exclude))))))))
+                         (block next
+                           (handler-bind
+                               ((use-next-route
+                                  ;; caught a use-next-route condition, push the current
+                                  ;; route onto the exclude list, load the next route, and
+                                  ;; try again
+                                  (lambda (e)
+                                    (declare (ignore e))
+                                    (log:debu1 "(route) Next route")
+                                    (push route route-exclude)
+                                    (setf route (find-route (fast-http:http-method http)
+                                                            route-path
+                                                            :exclude route-exclude))
+                                    (return-from next))))
+                             ;; run our route and break the loop if successful
+                             (progn
+                               (run-route route)
+                               (return-from run-route))))))))
                  (do-run-hooks (sock) (run-hooks :post-route request response)
                    nil)))
              (header-callback (headers)
@@ -130,7 +134,7 @@
                 parsed headers. Allows us to find which route we're going to
                 dispatch to, and if needed, set up chunking *before* the body
                 starts flowing in. Responsible for the :parsed-headers hook."
-               (future-handler-case
+               (blackbird:catcher
                  (let* ((method (fast-http:http-method http))
                         (resource (fast-http:http-resource http))
                         (parsed-uri (quri:uri resource))

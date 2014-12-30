@@ -176,7 +176,7 @@
                       :iso-8859-1)))
     (handler-case
       (babel:octets-to-string body-bytes :encoding charset)
-      (t ()
+      (error ()
         (babel:octets-to-string body-bytes :encoding :iso-8859-1))))) 
 
 (defun getf-reverse (plist key)
