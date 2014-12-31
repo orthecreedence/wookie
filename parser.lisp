@@ -61,7 +61,7 @@
                  (flet ((run-route (route)
                           (if route
                               (let ((route-fn (getf route :curried-route)))
-                                (log:debu1 "(route) Dispatch ~a: ~s" sock route)
+                                (vom:debug1 "(route) Dispatch ~a: ~s" sock route)
                                 (funcall route-fn request response)
                                 ;; if route expects chunking and all body chunks
                                 ;; have come in already, run the chunk callback
@@ -98,7 +98,7 @@
                                                                                         (let ((body (fast-io:finish-output-buffer body-buffer)))
                                                                                           (funcall body-cb body body-finished-p)))))))))
                               (progn
-                                (log:warn "(route) Missing route: ~s" route)
+                                (vom:warn "(route) Missing route: ~s" route)
                                 (funcall 'main-event-handler (make-instance 'route-not-found
                                                                             :resource route-path
                                                                             :socket sock) sock)
@@ -117,7 +117,7 @@
                                   ;; try again
                                   (lambda (e)
                                     (declare (ignore e))
-                                    (log:debu1 "(route) Next route")
+                                    (vom:debug1 "(route) Next route")
                                     (push route route-exclude)
                                     (setf route (find-route (fast-http:http-method http)
                                                             route-path
@@ -140,7 +140,7 @@
                         (parsed-uri (quri:uri resource))
                         (path (do-urlencode:urldecode (quri:uri-path parsed-uri) :lenientp t))
                         (host (get-header headers "host")))
-                   (log:debug "(request)  ~a ~a ~s ~a ~a"
+                   (vom:debug "(request)  ~a ~a ~s ~a ~a"
                               request
                               response
                               method
@@ -252,7 +252,7 @@
    http-parse parser which decide amongst themselves, during different points in
    the parsing, when to dispatch to the found router, when to send chunked
    content to the route, etc."
-  (log:debu1 "(connect) ~a" sock)
+  (vom:debug1 "(connect) ~a" sock)
   ;; TODO pass client address info into :connect hook
   (do-run-hooks (sock) (run-hooks :connect sock)
     (setup-parser sock)))
@@ -261,7 +261,7 @@
   "A simple read-cb handler that passes data to the HTTP parser attached to the
    socket the data is coming in on. The parser runs all necessary callbacks
    directly, so this function just blindly feeds the data in."
-  (log:debu1 "(read) ~a: ~a bytes" sock (length data))
+  (vom:debug1 "(read) ~a: ~a bytes" sock (length data))
   ;; grab the parser stored in the socket and pipe the data into it
   (let ((parser (getf (as:socket-data sock) :parser)))
     (funcall parser data)))

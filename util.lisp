@@ -1,5 +1,6 @@
 (defpackage :wookie-util
   (:use :cl :wookie-config :cl-async-future)
+  (:shadow blackbird:*debug-on-error*)
   (:export #:get-header
            #:set-header
            #:map-plist

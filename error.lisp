@@ -21,8 +21,8 @@
 
     ;; make sure tcp-info events get a lower log level. they suck.
     (if (typep event 'as:tcp-info)
-        (log:debu1 "(event) ~a (~a)" event socket)
-        (log:debug "(event) ~a (~a)" event socket))
+        (vom:debug1 "(event) ~a (~a)" event socket)
+        (vom:debug "(event) ~a (~a)" event socket))
 
     (unwind-protect
       (if (or (functionp *error-handler*)

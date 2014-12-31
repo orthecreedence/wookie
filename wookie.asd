@@ -15,7 +15,7 @@
                #:do-urlencode
                #:cl-fad
                #:fast-io
-               #:log4cl)
+               #:vom)
   :components
   ((:file "config")
    (:file "util" :depends-on ("config"))

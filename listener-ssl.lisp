@@ -8,7 +8,7 @@
 
 (defmethod start-server ((listener ssl-listener))
   ;; start the async SSL server
-  (log:info "(start) Starting Wookie (SSL)  ~a:~a"
+  (vom:info "(start) Starting Wookie (SSL)  ~a:~a"
             (if (listener-bind listener)
                 (listener-bind listener)
                 "0.0.0.0")

@@ -1,5 +1,6 @@
 (defpackage :wookie
   (:use :cl :wookie-config :wookie-util :cl-async-future)
+  (:shadow blackbird:*debug-on-error*)
   (:export #:*error-handler*
            #:*debug-on-error*
 

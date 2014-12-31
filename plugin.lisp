@@ -20,7 +20,7 @@
    plugin-name argument must be a unique keyword, and init-fn is the
    initialization function called that loads the plugin (called only once, on
    register)."
-  (log:debu1 "(plugin) Register plugin ~s" plugin-name)
+  (vom:debug1 "(plugin) Register plugin ~s" plugin-name)
   (let ((plugin-entry (list :name plugin-name
                             :init-function init-function
                             :unload-function unload-function)))
@@ -36,7 +36,7 @@
    
    Also unloads any current plugins that depend on this plugin. Does this
    recursively so all depencies are always resolved."
-  (log:debu1 "(plugin) Unload plugin ~s" plugin-name)
+  (vom:debug1 "(plugin) Unload plugin ~s" plugin-name)
   ;; unload the plugin
   (let ((plugin (gethash plugin-name (wookie-state-plugins *state*))))
     (when plugin
@@ -56,7 +56,7 @@
                                    when (oddp i)
                                      collect (intern (string system) :keyword)))
              (to-unload (intersection plugin-deps plugin-systems)))
-        (log:debu1 "(plugin) Unload deps for ~s ~s" plugin-name to-unload)
+        (vom:debug1 "(plugin) Unload deps for ~s ~s" plugin-name to-unload)
         (dolist (asdf to-unload)
           (let ((plugin-name (getf-reverse *available-plugins* asdf)))
             (unload-plugin plugin-name)))))))
@@ -85,7 +85,7 @@
    storing the data into the request's plugin data. This function allows this by
    taking the plugin-name (keyword), request object passed into the route, and
    the data to store."
-  (log:debu1 "(plugin) Set plugin data ~s: ~a" plugin-name data)
+  (vom:debug1 "(plugin) Set plugin data ~s: ~a" plugin-name data)
   (unless (hash-table-p (request-plugin-data request))
     (setf (request-plugin-data request) (make-hash-table :test #'eq)))
   (setf (gethash plugin-name (request-plugin-data request)) data))
@@ -107,7 +107,7 @@
                   ((or ,(when (find-package :quicklisp-client)
                           (intern "SYSTEM-NOT-FOUND" :quicklisp-client))
                        asdf::missing-component) (e)
-                    (log:warn "(plugin) Failed to load dependency for ~s (~s)"
+                    (vom:warn "(plugin) Failed to load dependency for ~s (~s)"
                               asdf-system
                               ,(when (find-package :quicklisp-client)
                                  (list (intern "SYSTEM-NOT-FOUND-NAME" :quicklisp-client) 'e)))))))
@@ -122,7 +122,7 @@
           (dolist (enabled *enabled-plugins*)
             (let ((asdf-system (getf *available-plugins* enabled)))
               (when asdf-system
-                (log:debu1 "(plugin) Loading plugin ASDF ~s and deps" asdf-system)
+                (vom:debug1 "(plugin) Loading plugin ASDF ~s and deps" asdf-system)
                 (load-system-with-handler asdf-system :use-quicklisp use-quicklisp))))
 
           ;; create an asdf system that houses all the enabled plugins as deps, then
@@ -152,7 +152,7 @@
 (defun load-plugins (&key ignore-loading-errors (use-quicklisp t))
   "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
    There is also the option to compile the plugins (default nil)."
-  (log:debug "(plugin) Load plugins ~s" *plugin-folders*)
+  (vom:debug "(plugin) Load plugins ~s" *plugin-folders*)
   (unless (wookie-state-plugins *state*)
     (setf (wookie-state-plugins *state*) (make-hash-table :test #'eq)))
   ;; unload current plugins
@@ -172,10 +172,10 @@
           (let ((plugin-file (concatenate 'string dirstr "plugin.asd")))
             (if (cl-fad:file-exists-p plugin-file)
                 (progn
-                  (log:debu1 "(plugin) Load ~a" plugin-file)
+                  (vom:debug1 "(plugin) Load ~a" plugin-file)
                   (let ((*current-plugin-name* plugin-name))
                     (load plugin-file)))
-                (log:warn "(plugin) Missing ~a" plugin-file)))))))
+                (vom:warn "(plugin) Missing ~a" plugin-file)))))))
   (resolve-dependencies :ignore-loading-errors ignore-loading-errors :use-quicklisp use-quicklisp))
 
 (defmacro defplugin (&rest asdf-defsystem-args)
