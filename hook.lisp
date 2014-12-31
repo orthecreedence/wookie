@@ -33,7 +33,7 @@
         (last-hook nil))
     (handler-bind
         (((or error simple-error) (lambda (e)
-                                    (unless *debug-on-error*
+                                    (unless wookie-config:*debug-on-error*
                                       (let* ((hook-name (getf last-hook :name))
                                              (hook-type hook)
                                              (hook-id-str (format nil "~s" hook-type))

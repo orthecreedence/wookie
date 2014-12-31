@@ -1,5 +1,4 @@
 (defpackage :wookie-plugin-core-multipart
-  (:shadow wookie:*debug-on-error*)
   (:use :cl :wookie-util :wookie :wookie-config))
 (in-package :wookie-plugin-core-multipart)
 

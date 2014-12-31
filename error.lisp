@@ -6,7 +6,7 @@
   (:report (lambda (c s) (format s "Wookie error: ~a" (wookie-error-msg c))))
   (:documentation "Describes a basic error while processing. Meant to be extended."))
 
-(defun main-event-handler (event socket)
+(defun main-event-handler (event socket event-cb)
   "Handle socket events/conditions that crop up during processing."
   (let* ((socket-data (when socket (as:socket-data socket)))
          (request (getf socket-data :request))
@@ -25,10 +25,10 @@
         (vom:debug "(event) ~a (~a)" event socket))
 
     (unwind-protect
-      (if (or (functionp *error-handler*)
-              (ignore-errors (symbol-function *error-handler*)))
+      (if (or (functionp event-cb)
+              (fboundp event-cb))
           ;; we have an error handler, call it with our error
-          (funcall *error-handler* event socket)
+          (funcall event-cb event socket)
 
           ;; no, no error handler, let's do some basic handling of our own
           (typecase event
@@ -55,7 +55,7 @@
                  (typep (as:tcp-socket event) 'as:socket))
         (setf (as:socket-data (as:tcp-socket event)) nil)))))
 
-(defun listener-event-handler (ev)
+(defun listener-event-handler (ev event-cb)
   "A wrapper around main-event-handler, useful for listeners to tie into."
   (let* ((event-type (type-of ev))
          (sock (cond ((subtypep event-type 'response-error)
@@ -64,5 +64,5 @@
                       (wookie-error-socket ev))
                      ((subtypep event-type 'as:tcp-info)
                       (as:tcp-socket ev)))))
-    (funcall 'main-event-handler ev sock)))
+    (funcall 'main-event-handler ev sock event-cb)))
 

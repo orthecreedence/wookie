@@ -1,12 +1,7 @@
 (defpackage :wookie
   (:use :cl :wookie-config :wookie-util :cl-async-future)
   (:shadow blackbird:*debug-on-error*)
-  (:export #:*error-handler*
-           #:*debug-on-error*
-
-           #:*hide-version*
-
-           #:wookie-state
+  (:export #:wookie-state
            #:wookie-state-hooks
            #:wookie-state-plugins
            #:wookie-state-plugin-config

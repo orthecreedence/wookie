@@ -3,7 +3,8 @@
 (defclass listener ()
   ((bind :accessor listener-bind :initarg :bind :initform nil)
    (port :accessor listener-port :initarg :port :initform 80)
-   (backlog :accessor listener-backlog :initarg :backlog :initform -1))
+   (backlog :accessor listener-backlog :initarg :backlog :initform -1)
+   (event-cb :accessor listener-event-cb :initarg :event-cb :initform nil))
   (:documentation "Describes an HTTP listener."))
 
 (defgeneric start-server (listener)
@@ -19,7 +20,7 @@
             (listener-port listener))
   (as:tcp-server (listener-bind listener) (listener-port listener)
     'read-data
-    'listener-event-handler
+    (lambda (ev) (listener-event-handler ev (listener-event-cb listener)))
     :connect-cb 'handle-connection
     :backlog (listener-backlog listener)))
 
