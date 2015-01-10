@@ -25,7 +25,11 @@
      :accessor wookie-state-routes
      :initarg :routes
      :initform (make-array 0 :adjustable t :fill-pointer t)
-     :documentation "Holds the routes this context uses."))
+     :documentation "Holds the routes this context uses.")
+   (ordered-routes
+     :accessor wookie-state-ordered-routes
+     :initform nil
+     :documentation "Routes ordered according to their priority (cached value)"))
   (:documentation
     "wookie-state holds all global data/state used by Wookie. It's purpose is to
      make threading Wookie easier by allowing the declaration of one
@@ -33,4 +37,3 @@
 
 (defvar *state* (make-instance 'wookie-state)
   "Holds all global state/context for Wookie.")
-
