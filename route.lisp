@@ -47,7 +47,7 @@
 (defun next-route ()
   "Lets the routing system know to re-route the current request, excluding this
    route from the available options."
-  (error 'use-next-route))
+  (signal 'use-next-route))
 
 (defun find-route (method resource &key exclude host)
   "Given a method and a resource, find the best matching route."
