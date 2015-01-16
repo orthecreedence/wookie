@@ -40,6 +40,8 @@
            #:request-headers
            #:request-uri
            #:request-data
+           #:request-store-body
+           #:request-body
            #:request-plugin-data
            #:request-body-callback
            #:request-http
@@ -62,7 +64,6 @@
            #:unload-plugin
            #:defplugin
            #:defplugfun
-           
 
            #:listener
            #:listener-bind

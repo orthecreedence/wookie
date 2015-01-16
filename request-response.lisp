@@ -19,7 +19,7 @@
    (headers :accessor request-headers :initarg :headers :initform nil)
    (uri :accessor request-uri :initarg :url :initform nil)
    (data :accessor request-data :initarg :data :initform nil)
-   (store-body :accessor request-store-body :initarg :store-body :initform nil)
+   (store-body :accessor request-store-body :initarg :store-body :initform t)
    (body :accessor request-body :initform nil)
    (plugin-data :accessor request-plugin-data :initarg :plugin-data :initform nil)
    (body-callback :accessor request-body-callback :initarg :body-callback :initform nil)
