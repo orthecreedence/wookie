@@ -6,7 +6,7 @@
   (:report (lambda (c s) (format s "Wookie error: ~a" (wookie-error-msg c))))
   (:documentation "Describes a basic error while processing. Meant to be extended."))
 
-(defun main-event-handler (event socket event-cb)
+(defun main-event-handler (event socket &optional event-cb)
   "Handle socket events/conditions that crop up during processing."
   (let* ((socket-data (when socket (as:socket-data socket)))
          (request (getf socket-data :request))
