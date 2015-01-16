@@ -98,9 +98,9 @@
 (defun set-querystring-hash (hash key val)
   "Set the key of a querystring var into a hash, creating as many nested hashes
    as needed. For instance:
-   
+
    (set-querystring-hash myhash \"data[body][tags]\" \"dogs,animals,bark\")
-   
+
    Would update `myhash` with
      [body] => < hash: [tags] => \"dogs,animals,bark\" >"
   (let* ((subkeys (cl-ppcre:split "(\\]\\[|\\[|\\])" key))
@@ -178,7 +178,7 @@
     (handler-case
       (babel:octets-to-string body-bytes :encoding charset)
       (error ()
-        (babel:octets-to-string body-bytes :encoding :iso-8859-1))))) 
+        (babel:octets-to-string body-bytes :encoding :iso-8859-1)))))
 
 (defun getf-reverse (plist key)
   "Like getf, except the VALUE comes before the KEY:
@@ -270,4 +270,3 @@
     (598 "Network Read Timeout Error")
     (599 "Network Connect Timeout Error")
     (t "Unknown Status")))
-

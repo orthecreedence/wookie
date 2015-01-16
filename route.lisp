@@ -22,9 +22,10 @@
 (defun clear-routes ()
   "Clear out all routes."
   (vom:debug1 "(route) Clearing routes")
-  (setf (wookie-state-routes *state*) (make-array 0 :adjustable t :fill-pointer t)))
+  (setf (wookie-state-routes *state*) (make-array 0 :adjustable t :fill-pointer t))
+  (routes-modified))
 
-(defun make-route (method resource fn &key regex case-sensitive store-body allow-chunking buffer-body suppress-100 vhost)
+(defun make-route (method resource fn &key regex case-sensitive allow-chunking buffer-body suppress-100 force-chunking vhost priority)
   "Simple wrapper to make a route object from a set of args."
   (let ((scanner (if regex
                      (cl-ppcre:create-scanner
@@ -35,21 +36,21 @@
           :resource scanner
           :fn fn
           :regex regex
-          :store-body store-body
           :allow-chunking allow-chunking
           :buffer-body buffer-body
           :suppress-100 suppress-100
           :resource-str resource
-          :vhost vhost)))
+          :vhost vhost
+          :priority (or priority 0))))
 
 (defun next-route ()
   "Lets the routing system know to re-route the current request, excluding this
    route from the available options."
-  (error 'use-next-route))
+  (signal 'use-next-route))
 
 (defun find-route (method resource &key exclude host)
   "Given a method and a resource, find the best matching route."
-  (loop for route across (wookie-state-routes *state*) do
+  (loop for route across (ordered-routes) do
     ;; don't load excluded routes
     (unless (find-if (lambda (ex)
                        (eq (getf ex :fn) (getf route :fn)))
@@ -79,9 +80,23 @@
               (setf (getf route :curried-route) curried-fn)
               (return-from find-route route))))))))
 
+(defun routes-modified ()
+  "Reset ordered route cache after routing changes"
+  (setf (wookie-state-ordered-routes *state*) nil))
+
+(defun ordered-routes ()
+  "Return the array of routes ordered by their priority,
+   routes with higher priority being first."
+  (or (wookie-state-ordered-routes *state*)
+      (setf (wookie-state-ordered-routes *state*)
+            (stable-sort (copy-seq (wookie-state-routes *state*))
+                         #'> :key #'(lambda (route)
+                                      (getf route :priority))))))
+
 (defun add-route (new-route)
   "Add a new route to the table."
   (vector-push-extend new-route (wookie-state-routes *state*))
+  (routes-modified)
   (length (wookie-state-routes *state*)))
 
 (defun method-equal (method1 method2)
@@ -101,7 +116,7 @@
 
 (defun upsert-route (new-route)
   "Add a new route to the table. If a route already exists with the same method
-   and resource string, it is replaced with the new one in the same position the 
+   and resource string, it is replaced with the new one in the same position the
    old route existed in (as to preserve routing order)."
   (let ((route-found nil)
         (resource-str (getf new-route :resource-str) )
@@ -115,6 +130,7 @@
           (return))))
     (unless route-found
       (vector-push-extend new-route (wookie-state-routes *state*)))
+    (routes-modified)
     (length (wookie-state-routes *state*))))
 
 (defun clear-route (method resource-str)
@@ -125,23 +141,26 @@
                          (route-equal route method resource-str))
                        (wookie-state-routes *state*)))
          (new-routes (make-array (length new-routes) :initial-contents new-routes :fill-pointer t :adjustable t)))
-    (setf (wookie-state-routes *state*) new-routes)))
+    (setf (wookie-state-routes *state*) new-routes)
+    (routes-modified)
+    (values)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) store-body chunk (buffer-body t) suppress-100 (replace t) (vhost '*default-vhost*))
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk (buffer-body t) suppress-100 force-chunking (replace t) (vhost '*default-vhost*) (priority 0))
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list.
 
      :regex specifies whether resource is a regex or not
      :chunk specifies if the route can handle chunked content
-     :store-body is an integer value that tells Wookie to save up to N bytes of
-       the raw http body
      :buffer-body tells Wookie to save any body parts that come through before
        with-chunking is called
      :suppress-100 tells Wookie that we want to send our own `100 Continue` HTTP
        response if we get an `Expect: 100-continue` header in the request
      :replace tells the routing system to upsert this resource/method set
        (instead of just blindly adding it to the end of the list like default)
+     :priority specifies a the route priority (a number, defaults to 0). Routes
+       with higher priority values are processed first. Both negative and
+       positive priorities are acceptable.
 
    bind-request/bind-response are the variable names that the request/response
    values are bound to, and bind-args specifies that variable that regex group
@@ -170,11 +189,12 @@
                                      ,@body)
                                    :regex ,regex
                                    :case-sensitive ,case-sensitive
-                                   :store-body ,store-body
                                    :allow-chunking ,chunk
                                    :buffer-body ,buffer-body
                                    :suppress-100 ,suppress-100
-                                   :vhost ,vhost)))
+                                   :force-chunking ,force-chunking
+                                   :vhost ,vhost
+                                   :priority ,priority)))
        (if ,replace
            (upsert-route ,new-route)
            (add-route ,new-route)))))
@@ -187,4 +207,3 @@
        (defroute ...))"
   `(let ((*default-vhost* ,host))
      ,@body))
-
