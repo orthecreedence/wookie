@@ -21,20 +21,19 @@
       (let* ((hash-form-vars (make-hash-table :test #'equal))
              (hash-file-data (make-hash-table :test #'equal))
              (cur-file nil)
-             (field-bytes (make-array 0 :element-type '(unsigned-byte 8)))
+             (field-buffer (cl-async-util:make-buffer))
              (multi-cb (lambda (field-name field-headers field-meta body-bytes body-complete-p)
                          (flet ((save-form-data ()
-                                  ;; append the data into our tmp field-bytes storage
-                                  (setf field-bytes (cl-async-util:append-array
-                                                      field-bytes
-                                                      body-bytes))
+                                  ;; append the data into our tmp field-buffer storage
+                                  (cl-async-util:write-to-buffer body-bytes field-buffer)
                                   ;; once this field is complete, convert the body to a string
                                   (when body-complete-p
-                                    (let ((body (body-to-string field-bytes (get-header field-headers "content-type"))))
+                                    (let* ((field-bytes (cl-async-util:buffer-output field-buffer))
+                                           (body (body-to-string field-bytes (get-header field-headers "content-type"))))
                                       ;; make sure we honor sub-fields (ie data[user][name])
                                       (set-querystring-hash hash-form-vars field-name body))
                                     ;; reset our tmp storage for the next field
-                                    (setf field-bytes (make-array 0 :element-type '(unsigned-byte 8)))))
+                                    (setf field-buffer (cl-async-util:make-buffer))))
                                 (save-file-data ()
                                   ;; open a tmp file for writing if we don't already have a handle
                                   (unless cur-file
