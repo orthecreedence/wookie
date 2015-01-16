@@ -45,6 +45,7 @@
          (error-occurred-p nil)
          (request (make-instance 'request :socket sock :http http))
          (response (make-instance 'response :request request))
+         (request-body-buffer nil)
          (body-buffer (fast-io:make-output-buffer))
          (body-finished-p nil))
     (setf (as:socket-data sock) (list :request request :response response))
@@ -198,6 +199,19 @@
                 if the route allows."
                (when error-occurred-p
                  (return-from body-callback))
+               ;; store the body in the request
+               (when (request-store-body request)
+                 (unless request-body-buffer
+                   (setf request-body-buffer (fast-io:make-output-buffer)))
+                 (if (< (+ (fast-io:buffer-position request-body-buffer)
+                           (- (or end (length chunk))
+                              (or start 0)))
+                        *max-body-size*)
+                     (fast-io:fast-write-sequence chunk request-body-buffer (or start 0) end)
+                     (progn
+                       (send-response response :status 413 :body "request body too large")
+                       (setf error-occurred-p t)
+                       (return-from body-callback))))
                ;; forward the chunk to the callback provided in the chunk-enabled
                ;; router
                (do-run-hooks (sock) (run-hooks :body-chunk request chunk start end body-finished-p)
@@ -232,6 +246,11 @@
                (when error-occurred-p
                  (return-from finish-callback))
                (setf body-finished-p t)
+               ;; set the request body into the request object
+               (when (and request-body-buffer
+                          (request-store-body request))
+                 (setf (request-body request) (fast-io:finish-output-buffer request-body-buffer))
+                 (setf request-body-buffer nil))   ; because i'm paranoid
                (body-callback (make-array 0 :element-type 'cl-async:octet) 0 0)
                ;; make sure we always dispatch at the end.
                (do-run-hooks (sock) (run-hooks :body-complete request)
