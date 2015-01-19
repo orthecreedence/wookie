@@ -19,8 +19,9 @@
     ;; convert the body to a string via the Content-Type header
     (let* ((body-bytes (request-body request))
            (headers (request-headers request))
-           (body (when (search "application/x-www-form-urlencoded"
-                               (gethash "content-type" headers))
+           (body (when (and body-bytes
+                            (search "application/x-www-form-urlencoded"
+                                    (gethash "content-type" headers)))
                    (body-to-string body-bytes (gethash "content-type" headers))))
            (body-qs (when body (querystring-to-hash body))))
       (when body
