@@ -104,7 +104,7 @@
     (do-run-hooks (socket) (run-hooks :response-started response request status headers body)
       (let* ((response-headers (response-headers response))
              (headers (append (if (hash-table-p response-headers)
-                                  (alexandria:hash-table-plist request-headers)
+                                  (alexandria:hash-table-plist response-headers)
                                   response-headers)
                               (if (hash-table-p headers)
                                   (alexandria:hash-table-plist headers)
