@@ -189,8 +189,8 @@
                                    (lambda (,bind-request ,bind-response &rest ,bind-args)
                                      ,(or docstring "")
                                      (declare (ignorable ,bind-request))
-                                     ,(when ignore-bind-args
-                                        `(declare (ignore ,bind-args)))
+                                     ,@(when ignore-bind-args
+                                         `((declare (ignore ,bind-args))))
                                      ,@body)
                                    :regex ,regex
                                    :case-sensitive ,case-sensitive
