@@ -9,10 +9,8 @@
 (defun main-event-handler (event socket &optional event-cb)
   "Handle socket events/conditions that crop up during processing."
   (let* ((socket-data (when socket (as:socket-data socket)))
-         (request (getf socket-data :request))
          (response (getf socket-data :response))
-         (response-finished (when response (response-finished-p response)))
-         (handled nil))
+         (response-finished (when response (response-finished-p response))))
     ;; don't dispatch/log an EOF on a finished request/response (nobody cares)
     (when (and response
                (response-finished-p response)
@@ -32,18 +30,18 @@
 
           ;; no, no error handler, let's do some basic handling of our own
           (typecase event
-            (route-not-found ()
+            (route-not-found
               (when (and response (not response-finished))
                 (send-response response :status 404 :body "Route for that resource not found =[.")))
-            (wookie-error ()
+            (wookie-error
               (when (and response (not response-finished))
                 (send-response response
                                :status 500
                                :body (format nil "There was an error processing your request: ~a" event))))
-            (as:tcp-eof ()
-              ;; a simple "do nothing"
+            ((or as:tcp-eof as:streamish-broken-pipe as:streamish-canceled)
+             ;; a simple "do nothing"
               nil)
-            (error ()
+            (t
               ;; unhandled, send it packing to the REPL
               (when (and response (not response-finished))
                 (send-response response
@@ -64,5 +62,5 @@
                       (wookie-error-socket ev))
                      ((subtypep event-type 'as:tcp-info)
                       (as:tcp-socket ev)))))
-    (funcall 'main-event-handler ev sock event-cb)))
+    (main-event-handler ev sock event-cb)))
 
