@@ -32,5 +32,9 @@
       (send-response res :status 404 :body "Not found!"))
     (as:with-event-loop (:catch-app-errors t)
       (let ((listener (make-instance 'listener :bind bind :port port)))
-        (start-server listener)))))
+        (start-server listener))
+      (as:signal-handler 2
+        (lambda (sig)
+          (declare (ignore sig))
+          (as:exit-event-loop))))))
 
