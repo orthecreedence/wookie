@@ -143,15 +143,23 @@
 
 (defun send-file (file-path route-path local-path request response)
   (declare (ignore request route-path))
-  (let ((path (concatenate 'string local-path "/" file-path))
-        (stream (start-response response :headers (list :content-type
-                                                        (get-mime file-path)))))
-    (with-open-file (fstream path :element-type '(unsigned-byte 8))
-      (let ((buffer (make-array (file-length fstream) :element-type 'as:octet)))
-        (read-sequence buffer fstream)
-        (write-sequence buffer stream)
-        (force-output stream)))
-    (finish-response response)))
+  (let* ((path (concatenate 'string local-path "/" file-path))
+         (stream (start-response response :headers (list :content-type
+                                                         (get-mime file-path))))
+         (fstream (open path :element-type '(unsigned-byte 8)))
+         (fsize (file-length fstream))
+         (buffer (make-array (* 1024 1024 8) :element-type 'as:octet)))
+    (labels ((finish ()
+               (close fstream)
+               (finish-response response))
+             (next ()
+               (let ((n (read-sequence buffer fstream)))
+                 (if (zerop n)
+                     (finish)
+                     (progn
+                       (write-sequence buffer stream :start 0 :end n)
+                       (as:delay #'next))))))
+      (next))))
 
 (defplugfun def-directory-route (route-path local-path &key disable-directory-listing)
   "Define a route that handles directory listings and file serving. If a file or
