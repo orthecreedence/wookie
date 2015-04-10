@@ -77,6 +77,27 @@
     (set-header headers :server (format nil "Wookie (~a)" *wookie-version*)))
   headers)
 
+(defun get-log-uri (uri)
+  "Given a quri object, return a string of the printable version for logging."
+  (let* ((str (quri:uri-path uri))
+         (params (quri:uri-query-params uri))
+         (enable-qs nil)
+         (str (if (and enable-qs params)
+                  (concatenate 'string
+                               str
+                               "?"
+                               (reduce (lambda (acc x)
+                                         (concatenate 'string
+                                                      acc
+                                                      (when (< 0 (length acc))
+                                                        "&")
+                                                      x))
+                                       (mapcar (lambda (x) (concatenate 'string (car x) "=" (cdr x)))
+                                               params)
+                                       :initial-value ""))
+                  str)))
+    str))
+
 (defun send-response (response &key (status 200) headers body (close nil close-specified-p))
   "Send a response to an incoming request. Takes :status, :headers, and :body
    keyword arguments, which together form an entire response.
@@ -85,9 +106,11 @@
    sent fully. However, send-response does its best to read the request headers
    and determine whether or not the connection should be closed. Unless you have
    a reason to specify :close, it may be best to leave it blank."
-  (vom:debug "(response) ~a ~a (status ~a) (close ~a) (headers ~s) (body-length ~a)"
-             (response-request response) response status close
-             headers (length body))
+  (vom:debug "(response) ~a ~a" response (response-request response))
+  (let ((req (response-request response)))
+    (vom:info "\"~a ~a\" ~a ~a"
+              (request-method req) (get-log-uri (request-uri req))
+              status (length body)))
   ;; make sure we haven't already responded to this request
   (when (response-finished-p response)
     (error (make-instance 'response-already-sent :response response)))
@@ -181,8 +204,7 @@
   "Start a response to the client, but do not specify body content (or close the
    connection). Return a chunked (chunga) stream that can be used to send the
    body content bit by bit until finished by calling finish-response."
-  (vom:debug "(response) Start chunked response ~a (status ~a) (headers ~s)"
-             response status headers)
+  (vom:debug "(response) chunked ~a ~a" response (response-request response))
   ;; we need to add in our own transfer header, so remove all others
   (dolist (head-list (list headers (response-headers response)))
     (remf head-list :content-length)
@@ -202,7 +224,11 @@
 (defun finish-response (response &key (close nil close-specified-p))
   "Given the stream passed back from start-response, finalize the response (send
    empty chunk) and close the connection, if specified."
-  (vom:debug "(response) Finish response ~a (close ~a)" response close)
+  (vom:debug "(response) finish ~a ~a" response (response-request response))
+  (let ((req (response-request response)))
+    (vom:info "\"~a ~a\" ~a ~a"
+              (request-method req) (get-log-uri (request-uri req))
+              status "(chunked)"))
   (let* ((chunked-stream (response-chunk-stream response))
          (request (response-request response))
          (socket (request-socket request)))
