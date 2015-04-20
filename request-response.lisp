@@ -228,7 +228,7 @@
   (let ((req (response-request response)))
     (vom:info "\"~a ~a\" ~a ~a"
               (request-method req) (get-log-uri (request-uri req))
-              status "(chunked)"))
+              "-" "(chunked)"))
   (let* ((chunked-stream (response-chunk-stream response))
          (request (response-request response))
          (socket (request-socket request)))
