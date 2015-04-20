@@ -15,17 +15,26 @@
 (defun parse-post-vars (request)
   "Grab POST data from parsed URI querystring and set into a hash table stored
    with the request."
-  (when (request-store-body request)
+  (when (and (request-store-body request)
+             (arrayp (request-body request)))
     ;; convert the body to a string via the Content-Type header
     (let* ((body-bytes (request-body request))
-           (headers (request-headers request))
-           (body (when (and body-bytes
-                            (search "application/x-www-form-urlencoded"
-                                    (gethash "content-type" headers)))
-                   (body-to-string body-bytes (gethash "content-type" headers))))
-           (body-qs (when body (querystring-to-hash body))))
-      (when body
-        (setf (plugin-request-data :post-vars request) body-qs)))))
+           (first-byte (aref body-bytes 0)))
+      (if (find first-byte (list (char-code #\{)
+                                 (char-code #\")
+                                 (char-code #\[)))
+          ;; TODO: fix hardcoded UTF8
+          (let ((body-obj (ignore-errors (yason:parse (babel:octets-to-string body-bytes :encoding :utf-8)))))
+            (when body-obj
+              (setf (plugin-request-data :post-vars request) body-obj)))
+          (let* ((headers (request-headers request))
+                 (body (when (and body-bytes
+                                  (search "application/x-www-form-urlencoded"
+                                          (gethash "content-type" headers)))
+                         (body-to-string body-bytes (gethash "content-type" headers))))
+                 (body-qs (when body (querystring-to-hash body))))
+            (when body
+              (setf (plugin-request-data :post-vars request) body-qs)))))))
 
 (defplugfun post-var (request key)
   "Get a value from the POST data by key."
