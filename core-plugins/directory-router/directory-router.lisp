@@ -148,7 +148,7 @@
                                                          (get-mime file-path))))
          (fstream (open path :element-type '(unsigned-byte 8)))
          (fsize (file-length fstream))
-         (buffer (make-array (* 1024 1024 8) :element-type 'as:octet)))
+         (buffer (make-array (min fsize (* 1024 1024 8)) :element-type 'as:octet)))
     (labels ((finish ()
                (close fstream)
                (finish-response response))
