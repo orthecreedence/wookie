@@ -124,7 +124,7 @@
                             filtered-filepath)))
       (dolist (file files)
         (let* ((ext (pathname-type file))
-               (basename (if (cl-fad:directory-exists-p file)
+               (basename (if (ignore-errors (cl-fad:directory-exists-p file))
                              (concatenate 'string
                                           (car (last (pathname-directory file)))
                                           "/")
@@ -180,13 +180,13 @@
                (local-file (concatenate 'string
                                         (namestring local-path)
                                         "/" file-path))
-               (is-directory (cl-fad:directory-exists-p local-file)))
+               (is-directory (ignore-errors (cl-fad:directory-exists-p local-file))))
           (cond
             ((and (not disable-directory-listing)
                   is-directory)
              (directory-listing file-path route-path local-path req res))
             ((and (not is-directory)
-                  (cl-fad:file-exists-p local-file))
+                  (ignore-errors (cl-fad:file-exists-p local-file)))
              (send-file file-path route-path local-path req res))
             (t 
              (next-route))))))))
