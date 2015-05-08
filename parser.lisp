@@ -59,77 +59,77 @@
                  (return-from dispatch-route))
                (setf route-dispatched t)
                (do-run-hooks (sock) (run-hooks :pre-route request response)
-                 (flet ((run-route (route)
-                          (if route
-                              (let ((route-fn (getf route :curried-route)))
-                                (vom:debug1 "(route) Dispatch ~a: ~s" sock route)
-                                (funcall route-fn request response)
-                                ;; if route expects chunking and all body chunks
-                                ;; have come in already, run the chunk callback
-                                ;; with the body buffer (otherwise the route's
-                                ;; body callback will never be called).
-                                (let ((request-body-cb (request-body-callback request)))
-                                  (when (and (getf route :allow-chunking)
-                                             (getf route :buffer-body))
-                                    (if (and body-buffer
-                                             body-finished-p)
-                                        ;; the body has finished processing, either
-                                        ;; send it into the chunking function or set
-                                        ;; up a callback that is called when
-                                        ;; with-chunking is called that pumps the body
-                                        ;; into the newly setup chunking callback
-                                        (let ((body (fast-io:finish-output-buffer body-buffer)))
-                                          (if request-body-cb
-                                              ;; with-chunking already called, great. pass
-                                              ;; in the body
-                                              (funcall request-body-cb body t)
-                                              ;; set up a callback that fires when
-                                              ;; with-chunking is called. it'll pass the
-                                              ;; body into the with-chunking callback
-                                              ;; once set
-                                              (setf (request-body-callback-setcb request) (lambda (body-cb) (funcall body-cb body t)))))
-                                        ;; chunking hasn't started yet AND we haven't called
-                                        ;; with-chunking yet. this is kind of an edge case,
-                                        ;; but it needs to be handled. we set up a callback
-                                        ;; that runs once with-chunking is called that
-                                        ;; *hopes* the body has finished chunking and if so,
-                                        ;; fires with-chunking with the body.
-                                        (setf (request-body-callback-setcb request) (lambda (body-cb)
-                                                                                      (when body-buffer
-                                                                                        (let ((body (fast-io:finish-output-buffer body-buffer)))
-                                                                                          (funcall body-cb body body-finished-p)))))))))
-                              (progn
-                                (vom:warn "(route) Missing route: ~s" route)
-                                (funcall 'main-event-handler (make-instance 'route-not-found
-                                                                            :resource route-path
-                                                                            :socket sock) sock)
-                                (return-from dispatch-route)))))
-                   ;; load our route, but if we encounter a use-next-route condition,
-                   ;; add the route to the exclude list and load the next route with
-                   ;; the same matching criteria as before
-                   (let ((route-exclude nil))
-                     (block run-route
-                       (loop
-                         (block next
-                           (handler-bind
-                               ((use-next-route
-                                  ;; caught a use-next-route condition, push the current
-                                  ;; route onto the exclude list, load the next route, and
-                                  ;; try again
-                                  (lambda (e)
-                                    (declare (ignore e))
-                                    (vom:debug1 "(route) Next route")
-                                    (push route route-exclude)
-                                    (setf route (find-route (fast-http:http-method http)
-                                                            route-path
-                                                            :exclude route-exclude))
-                                    (return-from next))))
-                             ;; run our route and break the loop if successful
-                             (progn
-                               (run-route route)
-                               (return-from run-route))))))))
-                 (do-run-hooks (sock) (run-hooks :post-route request response)
-                   nil)))
+                 (block skip-route
+                   (flet ((run-route (route)
+                            (if route
+                                (let ((route-fn (getf route :curried-route)))
+                                  (vom:debug1 "(route) Dispatch ~a: ~s" sock route)
+                                  (funcall route-fn request response)
+                                  ;; if route expects chunking and all body chunks
+                                  ;; have come in already, run the chunk callback
+                                  ;; with the body buffer (otherwise the route's
+                                  ;; body callback will never be called).
+                                  (let ((request-body-cb (request-body-callback request)))
+                                    (when (and (getf route :allow-chunking)
+                                               (getf route :buffer-body))
+                                      (if (and body-buffer
+                                               body-finished-p)
+                                          ;; the body has finished processing, either
+                                          ;; send it into the chunking function or set
+                                          ;; up a callback that is called when
+                                          ;; with-chunking is called that pumps the body
+                                          ;; into the newly setup chunking callback
+                                          (let ((body (fast-io:finish-output-buffer body-buffer)))
+                                            (if request-body-cb
+                                                ;; with-chunking already called, great. pass
+                                                ;; in the body
+                                                (funcall request-body-cb body t)
+                                                ;; set up a callback that fires when
+                                                ;; with-chunking is called. it'll pass the
+                                                ;; body into the with-chunking callback
+                                                ;; once set
+                                                (setf (request-body-callback-setcb request) (lambda (body-cb) (funcall body-cb body t)))))
+                                          ;; chunking hasn't started yet AND we haven't called
+                                          ;; with-chunking yet. this is kind of an edge case,
+                                          ;; but it needs to be handled. we set up a callback
+                                          ;; that runs once with-chunking is called that
+                                          ;; *hopes* the body has finished chunking and if so,
+                                          ;; fires with-chunking with the body.
+                                          (setf (request-body-callback-setcb request) (lambda (body-cb)
+                                                                                        (when body-buffer
+                                                                                          (let ((body (fast-io:finish-output-buffer body-buffer)))
+                                                                                            (funcall body-cb body body-finished-p)))))))))
+                                (progn
+                                  (vom:warn "(route) Missing route: ~s" route)
+                                  (funcall 'main-event-handler (make-instance 'route-not-found
+                                                                              :resource route-path
+                                                                              :socket sock) sock)
+                                  (return-from skip-route)))))
+                     ;; load our route, but if we encounter a use-next-route condition,
+                     ;; add the route to the exclude list and load the next route with
+                     ;; the same matching criteria as before
+                     (let ((route-exclude nil))
+                       (block run-route
+                         (loop
+                           (block next
+                             (handler-bind
+                                 ((use-next-route
+                                    ;; caught a use-next-route condition, push the current
+                                    ;; route onto the exclude list, load the next route, and
+                                    ;; try again
+                                    (lambda (e)
+                                      (declare (ignore e))
+                                      (vom:debug1 "(route) Next route")
+                                      (push route route-exclude)
+                                      (setf route (find-route (fast-http:http-method http)
+                                                              route-path
+                                                              :exclude route-exclude))
+                                      (return-from next))))
+                               ;; run our route and break the loop if successful
+                               (progn
+                                 (run-route route)
+                                 (return-from run-route))))))))
+                   (do-run-hooks (sock) (run-hooks :post-route request response) nil))))
              (header-callback (headers)
                "Called when our HTTP parser graciously passes us a block of
                 parsed headers. Allows us to find which route we're going to

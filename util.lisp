@@ -1,5 +1,5 @@
 (defpackage :wookie-util
-  (:use :cl :wookie-config :cl-async-future)
+  (:use :cl :wookie-config :blackbird)
   (:shadow blackbird:*debug-on-error*)
   (:export #:get-header
            #:set-header
@@ -270,3 +270,4 @@
     (598 "Network Read Timeout Error")
     (599 "Network Connect Timeout Error")
     (t "Unknown Status")))
+

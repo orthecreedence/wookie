@@ -27,60 +27,32 @@
    database has responded. Once the future is finished, then Wookie will
    continue processing the request."
   (vom:debug1 "(hook) Run ~s" hook)
-  (let ((future (make-future))
-        (hooks (gethash hook (wookie-state-hooks *state*)))
-        (collected-futures nil)   ; holds futures returned from hook functions
-        (last-hook nil))
-    (handler-bind
-        (((or error simple-error)
-          (lambda (e)
-            (unless wookie-config:*debug-on-error*
-              (let* ((hook-name (getf last-hook :name))
-                     (hook-type hook)
-                     (hook-id-str (format nil "~s" hook-type))
-                     (hook-id-str (if hook-name
-                                    (concatenate 'string hook-id-str (format nil " (~s)" hook-name))
-                                    hook-id-str)))
-                (vom:error "(hook) Caught error while running hooks: ~a: ~a" hook-id-str e))
-              (signal-error future e)
-              (return-from run-hooks future)))))
-      (dolist (hook hooks)
-        ;; track current hook for better error verbosity
-        (setf last-hook hook)
-        ;; see if a future was returned from the hook function. if so, save it.
-        (let ((ret (apply (getf hook :function) args)))
-          (when (futurep ret)
-            (push ret collected-futures)))))
-    (if (null collected-futures)
-        ;; no futures returned from our hook functions, so we can continue
-        ;; processing our current request.
-        (finish future)
-        ;; we did collect futures from the hook functions, so let's wait for all
-        ;; if them to finish before continuing with the current request.
-        (let* ((num-futures-finished 0)
-               ;; create a function that tracks how many futures have finished
-               (finish-fn
-                 (lambda (&rest _)
-                   (declare (ignore _))
-                   (incf num-futures-finished)
-                   (when (<= (length collected-futures) num-futures-finished)
-                     ;; all our watched futures are finished, continue the
-                     ;; request!
-                     (finish future)))))
-          ;; watch each of the collected futures
-          (blackbird:catcher
-            (dolist (collected-future collected-futures)
-              (attach collected-future finish-fn))
-            ;; catch any errors while processing and forward them to the hook
-            ;; runner
-            ((or error simple-error) (e)
-              (vom:debug1 "(hook) Caught future error processing hook ~a (~a)" hook (type-of e))
-              (signal-error future e)
-              ;; clear out all callbacks/errbacks/values/etc. essentially, this
-              ;; future and anything it references is gone forever.
-              (reset-future future)))))
-    ;; return the future that tracks when all hooks have successfully completed
-    future))
+  (with-promise (resolve reject)
+    (let ((hooks (gethash hook (wookie-state-hooks *state*)))
+          (collected-promises nil)   ; holds futures returned from hook functions
+          (last-hook nil))
+      (block runner
+        (handler-bind
+            (((or error simple-error)
+              (lambda (e)
+                (unless wookie-config:*debug-on-error*
+                  (let* ((hook-name (getf last-hook :name))
+                         (hook-type hook)
+                         (hook-id-str (format nil "~s" hook-type))
+                         (hook-id-str (if hook-name
+                                        (concatenate 'string hook-id-str (format nil " (~s)" hook-name))
+                                        hook-id-str)))
+                    (vom:error "(hook) Caught error while running hooks: ~a: ~a" hook-id-str e))
+                  (reject e)
+                  (return-from runner)))))
+          (dolist (hook hooks)
+            ;; track current hook for better error verbosity
+            (setf last-hook hook)
+            ;; see if a promise was returned from the hook function. if so, save it.
+            (let ((ret (apply (getf hook :function) args)))
+              (when (blackbird:promisep ret)
+                (push ret collected-promises)))))
+        (resolve (blackbird:all collected-promises))))))
 
 (defmacro do-run-hooks ((socket) run-hook-cmd &body body)
   "Run a number of hooks, catch any errors while running said hooks, and if an
@@ -89,10 +61,12 @@
   (let ((sock (gensym "sock")))
     `(let ((,sock ,socket))
        (blackbird:catcher
-         (wait-for ,run-hook-cmd
+         (blackbird:wait ,run-hook-cmd
            ,@body)
          (error (e)
-           (vom:error "(hook) Error running hooks (socket ~a): ~a" ,socket e)
+           (let ((hook (when (eq (car ',run-hook-cmd) 'run-hooks)
+                         (cadr ',run-hook-cmd))))
+             (vom:error "(hook) Error running hooks: ~a: (socket ~a): ~a" hook ,socket e))
            (main-event-handler e ,socket)
            (if (as:socket-closed-p ,sock)
                ;; clear out the socket's data, just in case

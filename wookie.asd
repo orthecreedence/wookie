@@ -4,7 +4,7 @@
   :version "0.3.11"
   :description "An evented webserver for Common Lisp."
   :depends-on (#:alexandria
-               #:cl-async-future
+               #:blackbird
                #:cl-async 
                #-(or :wookie-no-ssl) #:cl-async-ssl
                #:cl-ppcre
