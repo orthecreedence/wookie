@@ -79,6 +79,8 @@
 
 (defun get-log-uri (uri)
   "Given a quri object, return a string of the printable version for logging."
+  (unless uri
+    (return-from get-log-uri))
   (let* ((str (quri:uri-path uri))
          (params (quri:uri-query-params uri))
          (enable-qs nil)
