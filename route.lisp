@@ -25,7 +25,7 @@
   (setf (wookie-state-routes *state*) (make-array 0 :adjustable t :fill-pointer t))
   (routes-modified))
 
-(defun make-route (method resource fn &key regex case-sensitive allow-chunking buffer-body suppress-100 force-chunking vhost priority)
+(defun make-route (method resource fn &key regex case-sensitive allow-chunking buffer-body suppress-100 vhost priority)
   "Simple wrapper to make a route object from a set of args."
   (let ((scanner (if regex
                      (cl-ppcre:create-scanner
@@ -145,7 +145,11 @@
     (routes-modified)
     (values)))
 
-(defmacro defroute ((method resource &key (regex t) (case-sensitive t) chunk (buffer-body t) suppress-100 force-chunking (replace t) (vhost '*default-vhost*) (priority 0))
+(defmacro defroute ((method resource &key (regex t) (case-sensitive t)
+                                          chunk (buffer-body t) suppress-100
+                                          (replace t)
+                                          (vhost '*default-vhost*)
+                                          (priority 0))
                     (bind-request bind-response &optional bind-args)
                     &body body)
   "Defines a wookie route and pushes it into the route list.
@@ -192,7 +196,6 @@
                                    :allow-chunking ,chunk
                                    :buffer-body ,buffer-body
                                    :suppress-100 ,suppress-100
-                                   :force-chunking ,force-chunking
                                    :vhost ,vhost
                                    :priority ,priority)))
        (if ,replace
