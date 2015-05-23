@@ -44,7 +44,7 @@
 (defmethod get-socket ((response response))
   (get-socket (response-request response)))
 
-(defmacro with-chunking (request (chunk-data last-chunk-p) &body body)
+(defmacro with-chunking (request (chunk-data last-chunk-p &key store-body) &body body)
   "Set up a listener for chunked data in a chunk-enabled router. This macro
    takes a request object, the names of the chunk-data/finishedp arguments
    for the body, and the body form.
@@ -61,6 +61,8 @@
                             ,last-chunk-p
                             (length ,chunk-data))
                  ,@body))
+         ,(unless store-body
+            `(setf (request-store-body ,request-var) nil))
          (when (request-body-callback-setcb ,request-var)
            (funcall (request-body-callback-setcb ,request-var) (request-body-callback ,request-var))
            (setf (request-body-callback-setcb ,request-var) nil))))))
