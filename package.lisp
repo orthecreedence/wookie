@@ -46,6 +46,7 @@
            #:request-body-callback
            #:request-http
            #:response
+           #:response-request
            #:response-headers
            #:response-finished-p
            #:get-socket
