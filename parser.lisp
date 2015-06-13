@@ -100,7 +100,7 @@
                                                                                           (let ((body (fast-io:finish-output-buffer body-buffer)))
                                                                                             (funcall body-cb body body-finished-p)))))))))
                                 (progn
-                                  (vom:warn "(route) Missing route: ~s" route)
+                                  (vom:warn "(route) Missing route: ~a ~s" (request-method request) route-path)
                                   (funcall 'main-event-handler (make-instance 'route-not-found
                                                                               :resource route-path
                                                                               :socket sock) sock)
