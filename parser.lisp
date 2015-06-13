@@ -283,5 +283,12 @@
   (vom:debug1 "(read) ~a: ~a bytes" sock (length data))
   ;; grab the parser stored in the socket and pipe the data into it
   (let ((parser (getf (as:socket-data sock) :parser)))
-    (funcall parser data)))
+    (handler-bind
+        ((error (lambda (e)
+                  (when (typep e 'fast-http.error:parsing-error)
+                    (let* ((data (as:socket-data sock))
+                           (response (getf data :response)))
+                      (when response
+                        (send-response response :status 500 :body "Error parsing client HTTP request")))))))
+      (funcall parser data))))
 
