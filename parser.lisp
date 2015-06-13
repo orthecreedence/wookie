@@ -289,6 +289,6 @@
                     (let* ((data (as:socket-data sock))
                            (response (getf data :response)))
                       (when response
-                        (send-response response :status 500 :body "Error parsing client HTTP request")))))))
+                        (send-response response :status 400 :body "Error parsing client HTTP request")))))))
       (funcall parser data))))
 
