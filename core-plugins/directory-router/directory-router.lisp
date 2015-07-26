@@ -98,7 +98,7 @@
       ((asx asf) "video/x-ms-asf")
       ((wmv) "video/x-ms-wmv")
       ((avi) "video/x-msvideo")
-      (t "text/plain"))))
+      (t "application/octet-stream"))))
   
 (defun directory-listing (file-path route-path local-path request response)
   "Send a directory listing."
