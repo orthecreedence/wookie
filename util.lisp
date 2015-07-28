@@ -140,19 +140,9 @@
 
 (defun querystring-to-hash (querystring)
   "Convert a querystring into a hash table."
-  (let* ((main-hash (make-hash-table :test #'equal)))
-    (unless querystring (return-from querystring-to-hash main-hash))
-    (let* ((querystring (cl-ppcre:regex-replace-all "(^[?&]+|&+$)" querystring ""))
-           (querystring (cl-ppcre:regex-replace-all "&+" querystring "&"))
-           (parts (cl-ppcre:split "&(?!amp;)" querystring))
-           (parts (remove-if #'null parts)))
-      (dolist (part parts)
-        (let* ((split (cl-ppcre:split "=" part))
-               (key (car split))
-               (val (cadr split))
-               (val (do-urlencode:urldecode val :lenientp t :queryp t)))
-          (setf main-hash (set-querystring-hash main-hash key val))))
-      (convert-hash-vectors main-hash))))
+  (if querystring
+      (alexandria:alist-hash-table (quri:url-decode-params querystring) :test #'equal)
+      (make-hash-table :test #'equal)))
 
 (defun print-hash (hash-table &optional (indent 0))
   "Useful for debugging hash tables."
