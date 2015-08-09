@@ -288,6 +288,7 @@
                   (when (typep e 'fast-http.error:parsing-error)
                     (let* ((data (as:socket-data sock))
                            (response (getf data :response)))
+                      (vom:error "error parsing: ~a" e)
                       (when response
                         (send-response response :status 400 :body "Error parsing client HTTP request")))))))
       (funcall parser data))))
