@@ -59,10 +59,6 @@
        (let ((,request-var ,request))
          (setf (request-body-callback ,request-var)
                (lambda (,chunk-data ,last-chunk-p &key ((:start ,fn-start-var) 0) ((:end ,fn-end-var) nil))
-                 (with-open-file (s "d:/tmp/turtl-files/log.bin" :if-exists :append :if-does-not-exist :create :direction :output :element-type '(unsigned-byte 8))
-                   (write-sequence ,chunk-data s :start ,fn-start-var :end (or ,fn-end-var (length ,chunk-data)))
-                   (when ,last-chunk-p
-                     (write-sequence (make-array 4 :element-type '(unsigned-byte 8) :initial-contents '(10 61 61 61)) s)))
                  (vom:debug2 "(chunk) Got chunk (~a) ~a bytes"
                             ,last-chunk-p
                             (- (or ,fn-end-var (length ,chunk-data)) ,fn-start-var))
