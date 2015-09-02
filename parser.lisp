@@ -83,7 +83,9 @@
                                             (if request-body-cb
                                                 ;; with-chunking already called, great. pass
                                                 ;; in the body
-                                                (funcall request-body-cb body t)
+                                                (progn
+                                                  (funcall request-body-cb body t)
+                                                  (setf body-buffer nil))
                                                 ;; set up a callback that fires when
                                                 ;; with-chunking is called. it'll pass the
                                                 ;; body into the with-chunking callback
@@ -98,7 +100,8 @@
                                           (setf (request-body-callback-setcb request) (lambda (body-cb)
                                                                                         (when body-buffer
                                                                                           (let ((body (fast-io:finish-output-buffer body-buffer)))
-                                                                                            (funcall body-cb body body-finished-p)))))))))
+                                                                                            (funcall body-cb body body-finished-p)
+                                                                                            (setf body-buffer nil)))))))))
                                 (progn
                                   (vom:warn "(route) Missing route: ~a ~s" (request-method request) route-path)
                                   (funcall 'main-event-handler (make-instance 'route-not-found
@@ -228,7 +231,7 @@
                          (request-body-cb
                           ;; we have a chunking callback set up by the route, no
                           ;; need to do anything fancy. just send the chunk in.
-                          (funcall request-body-cb chunk body-finished-p))
+                          (funcall request-body-cb chunk body-finished-p :start start :end end))
                          ((and (getf route :allow-chunking)
                                (getf route :buffer-body))
                           ;; we're allowing chunking through this route, we're

@@ -44,7 +44,7 @@
 (defmethod get-socket ((response response))
   (get-socket (response-request response)))
 
-(defmacro with-chunking (request (chunk-data last-chunk-p &key store-body) &body body)
+(defmacro with-chunking (request (chunk-data last-chunk-p &key store-body ((:start start-var)) ((:end end-var))) &body body)
   "Set up a listener for chunked data in a chunk-enabled router. This macro
    takes a request object, the names of the chunk-data/finishedp arguments
    for the body, and the body form.
@@ -52,14 +52,33 @@
    Chunk-data is a byte-array of data received as decoded chunked data comes in
    from the client, and last-chunk-p is a boolean indicating whether the last
    chunk from the request is being sent in."
-  (let ((request-var (gensym "request")))
+  (let ((request-var (gensym "request"))
+        (fn-start-var (or start-var (gensym "start")))
+        (fn-end-var (or end-var (gensym "end"))))
     `(progn
        (let ((,request-var ,request))
          (setf (request-body-callback ,request-var)
-               (lambda (,chunk-data ,last-chunk-p)
+               (lambda (,chunk-data ,last-chunk-p &key ((:start ,fn-start-var) 0) ((:end ,fn-end-var) nil))
+                 (with-open-file (s "d:/tmp/turtl-files/log.bin" :if-exists :append :if-does-not-exist :create :direction :output :element-type '(unsigned-byte 8))
+                   (write-sequence ,chunk-data s :start ,fn-start-var :end (or ,fn-end-var (length ,chunk-data)))
+                   (when ,last-chunk-p
+                     (write-sequence (make-array 4 :element-type '(unsigned-byte 8) :initial-contents '(10 61 61 61)) s)))
                  (vom:debug2 "(chunk) Got chunk (~a) ~a bytes"
                             ,last-chunk-p
-                            (length ,chunk-data))
+                            (- (or ,fn-end-var (length ,chunk-data)) ,fn-start-var))
+                 ;; backwards compatibility: pre fast-http, the body chunk would
+                 ;; come through as a complete dump. post fast-http, it comes as
+                 ;; dump w/ start+end. so we give the app a choice to use start
+                 ;; and end if they want, in which case we let them handle the
+                 ;; subseq or whatever it is they want themselves. however, if
+                 ;; they do not specify, then we do a copy (subseq) for them to
+                 ;; avoid data corruption
+                 (unless (and ,start-var ,end-var)
+                   ;; if the caller (the parser) doesn't pass in :start/:end,
+                   ;; then don't bother with the subseq (all the data is good)
+                   (unless (and (< 0 ,fn-start-var) ,fn-end-var)
+                     (setf ,chunk-data (subseq ,chunk-data ,fn-start-var ,fn-end-var))))
+                 (unless ,fn-end-var (setf ,fn-end-var (length ,chunk-data)))
                  ,@body))
          ,(unless store-body
             `(setf (request-store-body ,request-var) nil))
