@@ -117,7 +117,7 @@
                   str)))
     str))
 
-(defun send-response (response &key (status 200) headers body (close nil close-specified-p))
+(defun send-response (response &key (status 200) headers (body nil body-specified-p) (close nil close-specified-p))
   "Send a response to an incoming request. Takes :status, :headers, and :body
    keyword arguments, which together form an entire response.
 
@@ -141,7 +141,7 @@
              :code -1
              :msg "Trying to operate on a closed socket"
              :socket socket))
-  
+
     ;; run the response hooks
     (do-run-hooks (socket) (run-hooks :response-started response request status headers body)
       (let* ((response-headers (response-headers response))
@@ -160,7 +160,7 @@
                              (t
                               (error "Unsupported body type (need string or octet vector): ~a~%" (type-of body)))))
              (status-text (lookup-status-text status)))
-        (when (and body (not (get-header headers :content-length)))
+        (when (and body-specified-p (not (get-header headers :content-length)))
           (set-header headers :content-length (length body-enc)))
         ;; make writing a single HTTP line a bit less painful
         (flet ((write-http-line (format-str &rest format-args)
