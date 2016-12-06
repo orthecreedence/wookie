@@ -13,6 +13,12 @@
            #:lookup-status-text))
 (in-package :wookie-util)
 
+(defun getf* (plist key &optional default)
+  "Similar to GETF but compares keys with string-equal."
+  (alexandria:doplist (k v plist default)
+    (when (string-equal key k)
+      (return-from getf* v))))
+
 (defmacro get-header (header-collection key)
   "Get a value from a header collection."
   (alexandria:with-gensyms (headers s-key)
@@ -27,7 +33,7 @@
               (let ((key (if (keywordp ,s-key)
                              ,s-key
                              (intern (string-upcase (string ,s-key)) :keyword))))
-                (getf ,headers key)))))))
+                (getf* ,headers key)))))))
 
 (defmacro set-header (header-collection key value)
   "Set a value into a header collection."
