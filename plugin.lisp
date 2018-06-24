@@ -33,7 +33,7 @@
 (defun unload-plugin (plugin-name)
   "Unload a plugin from the wookie system. If it's currently registered, its
    unload-function will be called.
-   
+
    Also unloads any current plugins that depend on this plugin. Does this
    recursively so all depencies are always resolved."
   (vom:debug1 "(plugin) Unload plugin ~s" plugin-name)
@@ -157,7 +157,7 @@
 
 (defparameter *current-plugin-name* nil
   "Used by load-plugins to tie ASDF systems to a :plugin-name")
-  
+
 (defparameter *scanner-plugin-name*
   (cl-ppcre:create-scanner "[/\\\\]([a-z-_]+)[/\\\\]?$" :case-insensitive-mode t)
   "Basically unix's basename in a regex.")
@@ -207,5 +207,3 @@
      (defun ,name ,args ,@body)
      (shadowing-import ',name :wookie-plugin-export)
      (export ',name :wookie-plugin-export)))
-
-
