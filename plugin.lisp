@@ -108,6 +108,11 @@
                        (error "Symbol ~A is missing from package ~A(!)" '#:quickload pkg))
                    (asdf:oos 'asdf:load-op system))))
            (load-system-with-handler (system &key use-quicklisp)
+             ;; We only want to handle errors with a particular
+             ;; dynamic type, so we need to establish a handler for a
+             ;; super-type of those errors, check the type
+             ;; dynamically, and let the condition fall through if it
+             ;; doesn't match.
              (handler-bind
                  ((error (lambda (c)
                            (let* ((ql-pkg (find-package :ql))
