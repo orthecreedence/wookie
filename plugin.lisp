@@ -96,21 +96,34 @@
   ;; note that these are macros to fix some dependency issues when building
   ;; Wookie on some systems (that don't have quicklisp). TBH they could probably
   ;; be functions. oh well.
-  (macrolet ((load-system (system &key use-quicklisp)
-               ;; FUCK the system
-               (if (and use-quicklisp (find-package :ql))
-                   (list (intern "QUICKLOAD" :ql) system)
-                   `(asdf:oos 'asdf:load-op ,system)))
-             (load-system-with-handler (system &key use-quicklisp)
-               `(handler-case
-                  (load-system ,system :use-quicklisp ,use-quicklisp)
-                  ((or ,(when (find-package :quicklisp-client)
-                          (intern "SYSTEM-NOT-FOUND" :quicklisp-client))
-                       asdf::missing-component) (e)
-                    (vom:warn "(plugin) Failed to load dependency for ~s (~s)"
-                              asdf-system
-                              ,(when (find-package :quicklisp-client)
-                                 (list (intern "SYSTEM-NOT-FOUND-NAME" :quicklisp-client) 'e)))))))
+  (labels ((pkg-symbol (sym pkg)
+             (and pkg (find-symbol (if (stringp sym) sym (symbol-name sym)) pkg)))
+           (load-system (system &key use-quicklisp)
+             ;; FUCK the system
+             (let* ((pkg (find-package :ql))
+                    (quickload-sym (pkg-symbol '#:quickload pkg)))
+               (if (and use-quicklisp pkg)
+                   (if quickload-sym
+                       (funcall quickload-sym system)
+                       (error "Symbol ~A is missing from package ~A(!)" '#:quickload pkg))
+                   (asdf:oos 'asdf:load-op system))))
+           (load-system-with-handler (system &key use-quicklisp)
+             (handler-bind
+                 ((error (lambda (c)
+                           (let* ((ql-pkg (find-package :ql))
+                                  (ql-err-sym (pkg-symbol '#:system-not-found ql-pkg))
+                                  (system-name-sym (pkg-symbol '#:system-not-found-name ql-pkg)))
+                             (when (or (typep c 'asdf:missing-component)
+                                       (and ql-err-sym (typep c ql-err-sym)))
+                               (when (and ql-pkg (not system-name-sym))
+                                 (vom:warn "(plugin) Unable to find SYSTEM-NOT-FOUND-NAME in quicklisp package, will not be able to report missing plugin system names"))
+                               (vom:warn "(plugin) Failed to load dependency for ~s (~s)"
+                                         system
+                                         (if (and ql-pkg system-name-sym)
+                                             (funcall system-name-sym c)
+                                             nil))
+                               (return-from load-system-with-handler))))))
+               (load-system system :use-quicklisp use-quicklisp))))
     ;; make asdf/quicklisp shutup when loading. we're logging all this junk
     ;; newayz so nobody wants to see that shit
     (let* ((*log-output* *standard-output*)
