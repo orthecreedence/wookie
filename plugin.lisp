@@ -33,7 +33,7 @@
 (defun unload-plugin (plugin-name)
   "Unload a plugin from the wookie system. If it's currently registered, its
    unload-function will be called.
-   
+
    Also unloads any current plugins that depend on this plugin. Does this
    recursively so all depencies are always resolved."
   (vom:debug1 "(plugin) Unload plugin ~s" plugin-name)
@@ -96,21 +96,39 @@
   ;; note that these are macros to fix some dependency issues when building
   ;; Wookie on some systems (that don't have quicklisp). TBH they could probably
   ;; be functions. oh well.
-  (macrolet ((load-system (system &key use-quicklisp)
-               ;; FUCK the system
-               (if (and use-quicklisp (find-package :ql))
-                   (list (intern "QUICKLOAD" :ql) system)
-                   `(asdf:oos 'asdf:load-op ,system)))
-             (load-system-with-handler (system &key use-quicklisp)
-               `(handler-case
-                  (load-system ,system :use-quicklisp ,use-quicklisp)
-                  ((or ,(when (find-package :quicklisp-client)
-                          (intern "SYSTEM-NOT-FOUND" :quicklisp-client))
-                       asdf::missing-component) (e)
-                    (vom:warn "(plugin) Failed to load dependency for ~s (~s)"
-                              asdf-system
-                              ,(when (find-package :quicklisp-client)
-                                 (list (intern "SYSTEM-NOT-FOUND-NAME" :quicklisp-client) 'e)))))))
+  (labels ((pkg-symbol (sym pkg)
+             (and pkg (find-symbol (if (stringp sym) sym (symbol-name sym)) pkg)))
+           (load-system (system &key use-quicklisp)
+             ;; FUCK the system
+             (let* ((pkg (find-package :ql))
+                    (quickload-sym (pkg-symbol '#:quickload pkg)))
+               (if (and use-quicklisp pkg)
+                   (if quickload-sym
+                       (funcall quickload-sym system)
+                       (error "Symbol ~A is missing from package ~A(!)" '#:quickload pkg))
+                   (asdf:oos 'asdf:load-op system))))
+           (load-system-with-handler (system &key use-quicklisp)
+             ;; We only want to handle errors with a particular
+             ;; dynamic type, so we need to establish a handler for a
+             ;; super-type of those errors, check the type
+             ;; dynamically, and let the condition fall through if it
+             ;; doesn't match.
+             (handler-bind
+                 ((error (lambda (c)
+                           (let* ((ql-pkg (find-package :ql))
+                                  (ql-err-sym (pkg-symbol '#:system-not-found ql-pkg))
+                                  (system-name-sym (pkg-symbol '#:system-not-found-name ql-pkg)))
+                             (when (or (typep c 'asdf:missing-component)
+                                       (and ql-err-sym (typep c ql-err-sym)))
+                               (when (and ql-pkg (not system-name-sym))
+                                 (vom:warn "(plugin) Unable to find SYSTEM-NOT-FOUND-NAME in quicklisp package, will not be able to report missing plugin system names"))
+                               (vom:warn "(plugin) Failed to load dependency for ~s (~s)"
+                                         system
+                                         (if (and ql-pkg system-name-sym)
+                                             (funcall system-name-sym c)
+                                             nil))
+                               (return-from load-system-with-handler))))))
+               (load-system system :use-quicklisp use-quicklisp))))
     ;; make asdf/quicklisp shutup when loading. we're logging all this junk
     ;; newayz so nobody wants to see that shit
     (let* ((*log-output* *standard-output*)
@@ -144,7 +162,7 @@
 
 (defparameter *current-plugin-name* nil
   "Used by load-plugins to tie ASDF systems to a :plugin-name")
-  
+
 (defparameter *scanner-plugin-name*
   (cl-ppcre:create-scanner "[/\\\\]([a-z-_]+)[/\\\\]?$" :case-insensitive-mode t)
   "Basically unix's basename in a regex.")
@@ -194,5 +212,3 @@
      (defun ,name ,args ,@body)
      (shadowing-import ',name :wookie-plugin-export)
      (export ',name :wookie-plugin-export)))
-
-
