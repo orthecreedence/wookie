@@ -142,12 +142,7 @@
                  (let* ((method (fast-http:http-method http))
                         (resource (fast-http:http-resource http))
                         (parsed-uri (quri:uri resource))
-                        ;; do-urlencode changed their api so we try the old
-                        ;; first then the new
-                        (decode-fn 'do-urlencode:urldecode)
-                        (path (handler-case
-                                (funcall decode-fn (quri:uri-path parsed-uri) :lenientp t)
-                                (t () (funcall decode-fn (quri:uri-path parsed-uri)))))
+                        (path (do-urlencode:urldecode (quri:uri-path parsed-uri)))
                         (host (get-header headers "host")))
                    (vom:debug "(request)  ~a ~a ~s ~a ~a"
                               request
