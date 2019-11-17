@@ -27,9 +27,9 @@
 
 (defplugfun set-cookie (response key val &key expires max-age path domain http-only secure)
   "Update the headers for a response to set a cookie."
-  (when (stringp (gethash "set-cookie" (response-headers response)))
-    (setf (gethash "set-cookie" (response-headers response))
-          (list (gethash "set-cookie" (response-headers response)))))
+  (when (stringp (getf (response-headers response) "set-cookie"))
+    (setf (getf (response-headers response) "set-cookie")
+          (list (getf (response-headers response) "set-cookie"))))
   (let* ((attributes (list :expires expires
                            :max-age max-age
                            :path path
@@ -54,7 +54,7 @@
                              (concatenate 'string a "; " b)))
                          attributes
                          :initial-value header)))
-    (push header (gethash "set-cookie" (response-headers response)))))
+    (push header (getf (response-headers response) "set-cookie"))))
 
 (defun init-cookie-vars ()
   (add-hook :parsed-headers 'parse-cookie-vars :cookie-core-parse-vars))
