@@ -225,9 +225,9 @@
    body content bit by bit until finished by calling finish-response."
   (vom:debug "(response) chunked ~a ~a" response (response-request response))
   ;; we need to add in our own transfer header, so remove all others
-  (dolist (head-list (list headers (response-headers response)))
-    (remf head-list :content-length)
-    (remf head-list :transfer-encoding))
+  (dolist (header-to-remove (list :content-length :transfer-encoding))
+    (remf (response-headers response) header-to-remove)
+    (remf headers header-to-remove))
   (send-response response
                  :status status
                  :headers (append headers
