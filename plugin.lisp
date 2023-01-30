@@ -21,6 +21,11 @@
    initialization function called that loads the plugin (called only once, on
    register)."
   (vom:debug1 "(plugin) Register plugin ~s" plugin-name)
+
+  ;; Add to plugin to *available-plugins*.
+  (match-plugin-asdf (read-from-string (format nil ":~a" (file-namestring (package-name *package*))))
+		     (read-from-string (format nil ":~a" (package-name *package*))))
+
   (let ((plugin-entry (list :name plugin-name
                             :init-function init-function
                             :unload-function unload-function)))

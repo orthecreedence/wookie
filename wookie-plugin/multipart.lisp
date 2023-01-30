@@ -1,6 +1,8 @@
-(defpackage :wookie-plugin-core-multipart
-  (:use :cl :wookie-util :wookie :wookie-config))
-(in-package :wookie-plugin-core-multipart)
+(uiop:define-package #:wookie/wookie-plugin/multipart
+  (:documentation "A multipart plugin for Wookie")
+  (:import-from #:wookie)
+  (:use #:cl #:wookie-util #:wookie #:wookie-config))
+(in-package #:wookie/wookie-plugin/multipart)
 
 (defvar *tmp-file-counter* 0
   "Holds a value that is incremented for each temporary file generated.")

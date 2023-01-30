@@ -1,4 +1,5 @@
 (asdf:defsystem wookie
+  :class :package-inferred-system
   :author "Andrew Danger Lyon <orthecreedence@gmail.com>"
   :license "MIT"
   :version "0.3.15"
@@ -31,3 +32,4 @@
    #-(or :wookie-no-ssl) (:file "listener-ssl" :depends-on ("listener"))
    (:file "helper" :depends-on ("listener" "plugin" "package"))))
 
+(asdf:register-system-packages "wookie" '(#:wookie-config #:wookie-util #:wookie-plugin-export))

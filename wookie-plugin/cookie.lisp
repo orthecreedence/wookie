@@ -1,6 +1,8 @@
-(defpackage :wookie-plugin-core-cookie
-  (:use :cl :wookie-util :wookie))
-(in-package :wookie-plugin-core-cookie)
+(uiop:define-package #:wookie/wookie-plugin/cookie
+  (:documentation "A cookie plugin for Wookie")
+  (:import-from #:wookie)
+  (:use #:cl #:wookie-util #:wookie))
+(in-package #:wookie/wookie-plugin/cookie)
 
 (defparameter *scanner-cookie-split*
   (cl-ppcre:create-scanner ";[ \\s\\t]+")
@@ -63,4 +65,3 @@
   (remove-hook :parsed-headers :cookie-core-parse-vars))
 
 (register-plugin :cookie 'init-cookie-vars 'unload-cookie-vars)
-

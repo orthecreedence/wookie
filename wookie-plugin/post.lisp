@@ -1,6 +1,10 @@
-(defpackage :wookie-plugin-core-post
-  (:use :cl :wookie-util :wookie))
-(in-package :wookie-plugin-core-post)
+(uiop:define-package #:wookie/wookie-plugin/post
+  (:documentation "A POST plugin for Wookie")
+  (:import-from #:wookie)
+  (:import-from #:fast-io)
+  (:import-from #:yason)
+  (:use #:cl #:wookie-util #:wookie))
+(in-package #:wookie/wookie-plugin/post)
 
 (defun check-if-post (request)
   "Check if this request contains POST data, and mark the plugin data as such so

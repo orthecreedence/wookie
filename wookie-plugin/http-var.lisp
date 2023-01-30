@@ -1,6 +1,8 @@
-(defpackage :wookie-plugin-core-http-var
-  (:use :cl :wookie-util :wookie :wookie-plugin-export))
-(in-package :wookie-plugin-core-http-var)
+(uiop:define-package #:wookie/wookie-plugin/http-var
+  (:documentation "A plugin that makes accessing GET/POST/multipart form vars easy.")
+  (:import-from #:wookie)
+  (:use #:cl #:wookie-util #:wookie #:wookie-plugin-export))
+(in-package #:wookie/wookie-plugin/http-var)
 
 (defplugfun http-var (request key &key (order '(:get :post :multipart)))
   "Get a data variable from an HTTP request. Checks GET/POST/Multipart, assuming

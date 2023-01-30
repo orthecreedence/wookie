@@ -1,6 +1,8 @@
-(defpackage :wookie-plugin-core-directory-router
-  (:use :cl :wookie-util :wookie))
-(in-package :wookie-plugin-core-directory-router)
+(uiop:define-package #:wookie/wookie-plugin/directory-router
+  (:documentation "A directory router plugin for Wookie")
+  (:import-from #:wookie)
+  (:use #:cl #:wookie-util #:wookie))
+(in-package #:wookie/wookie-plugin/directory-router)
 
 (defparameter *scanner-get-extension*
   (cl-ppcre:create-scanner "^.*\\.([a-z0-9]+)$" :case-insensitive-mode t)

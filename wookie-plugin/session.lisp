@@ -1,6 +1,9 @@
-(defpackage :wookie-plugin-core-session
-  (:use :cl :wookie-util :wookie))
-(in-package :wookie-plugin-core-session)
+(uiop:define-package #:wookie/wookie-plugin/session
+  (:documentation "A session plugin for Wookie")
+  (:import-from #:wookie)
+  (:import-from #:wookie/wookie-plugin/cookie)
+  (:use #:cl #:wookie-util #:wookie))
+(in-package #:wookie/wookie-plugin/session)
 
 (defun load-session-data (request response)
   (declare (ignore response))

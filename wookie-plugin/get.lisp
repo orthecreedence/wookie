@@ -1,6 +1,8 @@
-(defpackage :wookie-plugin-core-get
-  (:use :cl :wookie-util :wookie))
-(in-package :wookie-plugin-core-get)
+(uiop:define-package #:wookie/wookie-plugin/get
+  (:documentation "A GET plugin for Wookie")
+  (:import-from #:wookie)
+  (:use #:cl #:wookie-util #:wookie))
+(in-package #:wookie/wookie-plugin/get)
 
 (defun parse-get-vars (request)
   "Grab GET data from parsed URI querystring and set into a hash table stored
