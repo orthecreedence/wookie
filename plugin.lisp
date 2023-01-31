@@ -187,7 +187,7 @@
         ;; already (meaning the plugin is defined) and b) the plugin dir exists
         (when (and (not plugin-defined-p)
                    (cl-fad:directory-exists-p dir))
-          (let ((plugin-file (concatenate 'string dirstr "plugin.asd")))
+          (let ((plugin-file (car (directory (merge-pathnames dir "*.asd")))))
             (if (cl-fad:file-exists-p plugin-file)
                 (progn
                   (vom:debug1 "(plugin) Load ~a" plugin-file)
