@@ -95,111 +95,39 @@
     (setf (request-plugin-data request) (make-hash-table :test #'eq)))
   (setf (gethash plugin-name (request-plugin-data request)) data))
 
-(defun resolve-dependencies (&key ignore-loading-errors (use-quicklisp t))
-  "Load the ASDF plugins and resolve all of their dependencies. Kind of an
-   unfortunate name. Will probably be renamed."
-  ;; note that these are macros to fix some dependency issues when building
-  ;; Wookie on some systems (that don't have quicklisp). TBH they could probably
-  ;; be functions. oh well.
-  (labels ((pkg-symbol (sym pkg)
-             (and pkg (find-symbol (if (stringp sym) sym (symbol-name sym)) pkg)))
-           (load-system (system &key use-quicklisp)
-             ;; FUCK the system
-             (let* ((pkg (find-package :ql))
-                    (quickload-sym (pkg-symbol '#:quickload pkg)))
-               (if (and use-quicklisp pkg)
-                   (if quickload-sym
-                       (funcall quickload-sym system)
-                       (error "Symbol ~A is missing from package ~A(!)" '#:quickload pkg))
-                   (asdf:oos 'asdf:load-op system))))
-           (load-system-with-handler (system &key use-quicklisp)
-             ;; We only want to handle errors with a particular
-             ;; dynamic type, so we need to establish a handler for a
-             ;; super-type of those errors, check the type
-             ;; dynamically, and let the condition fall through if it
-             ;; doesn't match.
-             (handler-bind
-                 ((error (lambda (c)
-                           (let* ((ql-pkg (find-package :ql))
-                                  (ql-err-sym (pkg-symbol '#:system-not-found ql-pkg))
-                                  (system-name-sym (pkg-symbol '#:system-not-found-name ql-pkg)))
-                             (when (or (typep c 'asdf:missing-component)
-                                       (and ql-err-sym (typep c ql-err-sym)))
-                               (when (and ql-pkg (not system-name-sym))
-                                 (vom:warn "(plugin) Unable to find SYSTEM-NOT-FOUND-NAME in quicklisp package, will not be able to report missing plugin system names"))
-                               (vom:warn "(plugin) Failed to load dependency for ~s (~s)"
-                                         system
-                                         (if (and ql-pkg system-name-sym)
-                                             (funcall system-name-sym c)
-                                             nil))
-                               (return-from load-system-with-handler))))))
-               (load-system system :use-quicklisp use-quicklisp))))
-    ;; make asdf/quicklisp shutup when loading. we're logging all this junk
-    ;; newayz so nobody wants to see that shit
-    (let* ((*log-output* *standard-output*)
-           (*standard-output* (make-broadcast-stream)))
-      (if ignore-loading-errors
-          ;; since we're ignoring errors, we need to individually load each plugin
-          ;; so if there's an error we can keep loading the other plugins (and of
-          ;; course generate a warning).
-          (dolist (enabled *enabled-plugins*)
-            (let ((asdf-system (getf *available-plugins* enabled)))
-              (when asdf-system
-                (vom:debug1 "(plugin) Loading plugin ASDF ~s and deps" asdf-system)
-                (load-system-with-handler asdf-system :use-quicklisp use-quicklisp))))
-
-          ;; create an asdf system that houses all the enabled plugins as deps, then
-          ;; load it (a lot faster than individually loading each asdf system).
-          (let ((asdf-list (loop for plugin in *enabled-plugins*
-                                 collect (getf *available-plugins* plugin))))
-            (apply (eval (cadr (macroexpand-1 '(asdf:defsystem test))))
-                   'wookie-plugin-load-system
-                   `(:author "The high king himself, Lord Wookie."
-                     :license "Unconditional servitude."
-                     :version "1.0.0"
-                     :description "An auto-generated ASDF system that helps make loading plugins fast."
-                     :depends-on ,asdf-list))
-            (load-system :wookie-plugin-load-system :use-quicklisp use-quicklisp))))))
-
 (defun match-plugin-asdf (plugin-name asdf-system)
   "Match a plugin and an ASDF system toeach other."
   (setf (getf *available-plugins* plugin-name) asdf-system))
 
-(defparameter *current-plugin-name* nil
-  "Used by load-plugins to tie ASDF systems to a :plugin-name")
+(defun pkg-symbol (sym pkg)
+  (and pkg (find-symbol (if (stringp sym) sym (symbol-name sym)) pkg)))
 
-(defparameter *scanner-plugin-name*
-  (cl-ppcre:create-scanner "[/\\\\]([a-z-_]+)[/\\\\]?$" :case-insensitive-mode t)
-  "Basically unix's basename in a regex.")
+(defun load-system (system &key use-quicklisp)
+  ;; FUCK the system
+  (let* ((pkg (find-package :ql))
+         (quickload-sym (pkg-symbol '#:quickload pkg)))
+    (if (and use-quicklisp pkg)
+        (if quickload-sym
+            (funcall quickload-sym system)
+            (error "Symbol ~A is missing from package ~A(!)" '#:quickload pkg))
+        (asdf:oos 'asdf:load-op system))))
 
 (defun load-plugins (&key ignore-loading-errors (use-quicklisp t))
-  "Load all plugins under the *plugin-folder* fold (set with set-plugin-folder).
-   There is also the option to compile the plugins (default nil)."
-  (vom:debug "(plugin) Load plugins ~s" *plugin-folders*)
+  "Load default plugins. Deprecated: Please list needed plugins in your ASDF system's
+   :depends-on instead."
+  (declare (ignore ignore-loading-errors))
+  (vom:debug "(plugin) Load plugins ~s" *enabled-plugins*)
   (unless (wookie-state-plugins *state*)
     (setf (wookie-state-plugins *state*) (make-hash-table :test #'eq)))
   ;; unload current plugins
   (loop for name being the hash-keys of (wookie-state-plugins *state*) do
     (unload-plugin name))
   (setf *available-plugins* nil)
-  (dolist (plugin-folder *plugin-folders*)
-    (dolist (dir (cl-fad:list-directory plugin-folder))
-      (let* ((dirstr (namestring dir))
-             (plugin-name (aref (cadr (multiple-value-list (cl-ppcre:scan-to-strings *scanner-plugin-name* dirstr))) 0))
-             (plugin-name (intern (string-upcase plugin-name) :keyword))
-             (plugin-defined-p (getf *available-plugins* plugin-name)))
-        ;; only load the plugin if a) there's not a plugin <--> ASDF match
-        ;; already (meaning the plugin is defined) and b) the plugin dir exists
-        (when (and (not plugin-defined-p)
-                   (cl-fad:directory-exists-p dir))
-          (let ((plugin-file (concatenate 'string dirstr "plugin.asd")))
-            (if (cl-fad:file-exists-p plugin-file)
-                (progn
-                  (vom:debug1 "(plugin) Load ~a" plugin-file)
-                  (let ((*current-plugin-name* plugin-name))
-                    (load plugin-file)))
-                (vom:warn "(plugin) Missing ~a" plugin-file)))))))
-  (resolve-dependencies :ignore-loading-errors ignore-loading-errors :use-quicklisp use-quicklisp))
+  (loop for plugin in *enabled-plugins*
+	for plugin-system = (format nil
+				    "wookie/wookie-plugin/~a"
+				    (string-downcase (string plugin)))
+	do (load-system plugin-system :use-quicklisp use-quicklisp)))
 
 (defmacro defplugin (&rest asdf-defsystem-args)
   "Simple wrapper around asdf:defsystem that maps a plugin-name (hopefully in
